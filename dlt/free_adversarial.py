@@ -78,12 +78,14 @@ class FreeAdversarialBaseTraining(Training):
 		self._std = self._std.expand_as(example).to(self._device)
 
 		os.makedirs(exp_dir, exist_ok=True)
+		save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
 		best_model_path = os.path.join(exp_dir, 'best.pth.tar')
 		best_measure = 0.
 		best_epoch = 0.
 		start = time.time()
 		for epoch in range(1, self._num_epochs+1):
-			save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
+			if self._save_all_ckpt:
+				save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 			# Update the learning rate
 			if self._scheduler is not None:
 				self._scheduler.step()

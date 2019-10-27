@@ -64,6 +64,7 @@ class Training(abc.ABC):
 
 	def __init__(self, net, optimizer, num_epochs, dataloader, 
 		batch_size, loss_fun, measure_fun, device='gpu', scheduler=None,
+		save_all_checkpoints=False,
 		other_config=None
 	):
 		self._net = net
@@ -83,6 +84,7 @@ class Training(abc.ABC):
 		self._measure = measure_fun
 		self._device = device
 		self._scheduler = scheduler
+		self._save_all_ckpt = save_all_checkpoints
 		self._other_config = other_config
 		# to customize the initialization in subclasses, please
 		# try to overwrite _initialize instead of __init__ if
@@ -126,12 +128,14 @@ class BaseTraining(Training):
 
 	def run(self, exp_dir):
 		os.makedirs(exp_dir, exist_ok=True)
+		save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
 		best_model_path = os.path.join(exp_dir, 'best.pth.tar')
 		best_measure = 0.
 		best_epoch = 0.
 		start = time.time()
 		for epoch in range(1, self._num_epochs+1):
-			save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
+			if self._save_all_ckpt:
+				save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 			# Update the learning rate
 			if self._scheduler is not None:
 				self._scheduler.step()
