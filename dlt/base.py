@@ -1,4 +1,5 @@
 import os, shutil
+import time
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -30,7 +31,7 @@ class Training(abc.ABC):
 	Parameters
 	-------------
 	net : a :class: `torch.nn.Module` instance
-		The net should be neural network in torch
+		The net should be neural network in torch.
 	optimizer : a :class: `torch.optim.optimizer` instance
 		The optimizer for training the network.
 	dataloader : a :class: `dict` instance
@@ -79,7 +80,7 @@ class Training(abc.ABC):
 		except KeyError:
 			self._val_batch_size = 1
 		self._loss_fun = loss_fun
-		self._measure_fun = measure_fun
+		self._measure = measure_fun
 		self._device = device
 		self._scheduler = scheduler
 		self._other_config = other_config
@@ -124,6 +125,7 @@ class BaseTraining(Training):
 		raise NotImplementedError
 
 	def run(self, exp_dir):
+		os.makedirs(exp_dir, exist_ok=True)
 		best_model_path = os.path.join(exp_dir, 'best.pth.tar')
 		best_measure = 0.
 		best_epoch = 0.

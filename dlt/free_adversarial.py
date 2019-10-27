@@ -1,4 +1,5 @@
 import abc
+import time
 import os, shutil
 import torch
 import torch.nn as nn
@@ -6,13 +7,6 @@ from .base import Training, AverageMeter
 from tqdm import tqdm
 import warnings
 
-class fgsm(object):
-	def __init__(self, stepsize, clip_eps):
-		self.stepsize = stepsize
-		self.clip_eps = clip_eps
-
-	def __call__(self, grad):
-		return self.stepsize * grad.data.sign()
 
 """ Free Adversarial Training
 Reference: Shafahi, A., Najibi, M., Ghiasi, A., Xu, Z., 
@@ -22,7 +16,7 @@ Reference: Shafahi, A., Najibi, M., Ghiasi, A., Xu, Z.,
 https://github.com/mahyarnajibi/FreeAdversarialTraining
 """
 
-class FreeAversarialBaseTraining(Training):
+class FreeAdversarialBaseTraining(Training):
 	"""Free Adversarial Training frames if both data and label are ready.
 	The measure function only receives two arguments.
 	If you want to redirect the logging information to files using `tee`,
@@ -67,7 +61,7 @@ class FreeAversarialBaseTraining(Training):
 		self._std = torch.Tensor(self._std)
 
 	def _global_adversarial_noise(self, data):
-		self.adversarial_noise = torch.zeros((self._train_batch_size, data.size())).to(self._device)
+		self.adversarial_noise = torch.zeros((self._train_batch_size,)+data.size()).to(self._device)
 
 	@abc.abstractmethod
 	def _train(self, epoch):
@@ -83,6 +77,7 @@ class FreeAversarialBaseTraining(Training):
 		self._mean = self._mean.expand_as(example).to(self._device)
 		self._std = self._std.expand_as(example).to(self._device)
 
+		os.makedirs(exp_dir, exist_ok=True)
 		best_model_path = os.path.join(exp_dir, 'best.pth.tar')
 		best_measure = 0.
 		best_epoch = 0.
@@ -110,7 +105,7 @@ class FreeAversarialBaseTraining(Training):
 		print('Work done! Total elapsed time: %.2f s' % (end - start))		
 
 
-class FreeAdversarialTraining(FreeAversarialBaseTraining):
+class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 	def _train(self, epoch):
 		avg_loss = AverageMeter()
 		avg_measre = AverageMeter()
@@ -139,9 +134,9 @@ class FreeAdversarialTraining(FreeAversarialBaseTraining):
 			current_loss.backward()		
 
 			# Update the noise for the next iteration
-			pert = self._perturb(noisy.grad)
+			pert = self._perturb(noise.grad)
 			self.adversarial_noise += pert.data
-			self.adversarial_noise.clamp_(-self._perturb.clip_eps, self._perturb.clip_eps)
+			self.adversarial_noise.clamp_(-self._perturb._eps, self._perturb._eps)
 
 			self._optimizer.step()			
 
@@ -163,13 +158,13 @@ class FreeAdversarialTraining(FreeAversarialBaseTraining):
 					mvalue=avg_measre,
 					)
 			)
-			# Print out final information
-			print('Training [{epoch}/{epochs}], Iters {iters}, \
-				loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-				measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-					epoch=epoch, epochs=self._num_epochs, 
-					iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-			)
+		# Print out final information
+		print('Training [{epoch}/{epochs}], Iters {iters}, \
+			loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
+			measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
+				epoch=epoch, epochs=self._num_epochs, 
+				iters=current_iter, loss=avg_loss, mvalue=avg_measre)
+		)
 
 	def _val(self, epoch):
 		# check validate data loader
@@ -182,7 +177,7 @@ class FreeAdversarialTraining(FreeAversarialBaseTraining):
 			for i, (data, label) in data_stream:
 				self._net.eval()
 				# where we are
-				num_batches = len(self._train_loader)
+				num_batches = len(self._val_loader)
 				current_iter = (epoch - 1) * num_batches + i
 
 				data, label = data.to(self._device), label.to(self._device)				
@@ -209,11 +204,11 @@ class FreeAdversarialTraining(FreeAversarialBaseTraining):
 						mvalue=avg_measre,
 						)
 				)
-				# Print out final information
-				print('Validating [{epoch}/{epochs}], Iters {iters}, \
-					loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-					measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-						epoch=epoch, epochs=self._num_epochs, 
-						iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-				)			
+			# Print out final information
+			print('Validating [{epoch}/{epochs}], Iters {iters}, \
+				loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
+				measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
+					epoch=epoch, epochs=self._num_epochs, 
+					iters=current_iter, loss=avg_loss, mvalue=avg_measre)
+			)			
 		return avg_loss, avg_measre

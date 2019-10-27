@@ -1,4 +1,5 @@
 import abc
+import time
 import os, shutil
 import torch
 import torch.nn as nn
@@ -8,9 +9,9 @@ import warnings
 
 
 def default_add_penalty(loss, data):
-	return loss, data
+	return loss
 
-class AversarialTraining(BaseTraining):
+class AdversarialTraining(BaseTraining):
 	"""Adversarial Training frames if both data and label are ready.
 	The measure function only receives two arguments.
 	If you want to redirect the logging information to files using `tee`,
@@ -93,13 +94,13 @@ class AversarialTraining(BaseTraining):
 					mvalue=avg_measre,
 					)
 			)
-			# Print out final information
-			print('Training [{epoch}/{epochs}], Iters {iters}, \
-				loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-				measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-					epoch=epoch, epochs=self._num_epochs, 
-					iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-			)
+		# Print out final information
+		print('Training [{epoch}/{epochs}], Iters {iters}, \
+			loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
+			measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
+				epoch=epoch, epochs=self._num_epochs, 
+				iters=current_iter, loss=avg_loss, mvalue=avg_measre)
+		)
 
 	def _val(self, epoch):
 		# check validate data loader
@@ -112,10 +113,12 @@ class AversarialTraining(BaseTraining):
 			for i, (data, label) in data_stream:
 				self._net.eval()
 				# where we are
-				num_batches = len(self._train_loader)
+				num_batches = len(self._val_loader)
 				current_iter = (epoch - 1) * num_batches + i
 
-				data, label = data.to(self._device), label.to(self._device)				
+				data, label = data.to(self._device), label.to(self._device)	
+
+				data = self._perturb(data, label)			
 				logits = self._net(data)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
@@ -139,11 +142,11 @@ class AversarialTraining(BaseTraining):
 						mvalue=avg_measre,
 						)
 				)
-				# Print out final information
-				print('Validating [{epoch}/{epochs}], Iters {iters}, \
-					loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-					measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-						epoch=epoch, epochs=self._num_epochs, 
-						iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-				)			
+			# Print out final information
+			print('Validating [{epoch}/{epochs}], Iters {iters}, \
+				loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
+				measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
+					epoch=epoch, epochs=self._num_epochs, 
+					iters=current_iter, loss=avg_loss, mvalue=avg_measre)
+			)			
 		return avg_loss, avg_measre

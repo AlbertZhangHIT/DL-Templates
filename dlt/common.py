@@ -1,4 +1,5 @@
 import abc
+import time
 import os, shutil
 import torch
 import torch.nn as nn
@@ -54,13 +55,13 @@ class CommonTraining(BaseTraining):
 					mvalue=avg_measre,
 					)
 			)
-			# Print out final information
-			print('Training [{epoch}/{epochs}], Iters {iters}, \
-				loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-				measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-					epoch=epoch, epochs=self._num_epochs, 
-					iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-			)
+		# Print out final information
+		print('Training [{epoch}/{epochs}], Iters {iters}, \
+			loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
+			measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
+				epoch=epoch, epochs=self._num_epochs, 
+				iters=current_iter, loss=avg_loss, mvalue=avg_measre)
+		)
 
 	def _val(self, epoch):
 		# check validate data loader
@@ -74,7 +75,7 @@ class CommonTraining(BaseTraining):
 			for i, (data, label) in data_stream:
 				self._net.eval()
 				# where we are
-				num_batches = len(self._train_loader)
+				num_batches = len(self._val_loader)
 				current_iter = (epoch - 1) * num_batches + i
 
 				data, label = data.to(self._device), label.to(self._device)				
@@ -101,11 +102,11 @@ class CommonTraining(BaseTraining):
 						mvalue=avg_measre,
 						)
 				)
-				# Print out final information
-				print('Validating [{epoch}/{epochs}], Iters {iters}, \
-					loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-					measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-						epoch=epoch, epochs=self._num_epochs, 
-						iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-				)			
+			# Print out final information
+			print('Validating [{epoch}/{epochs}], Iters {iters}, \
+				loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
+				measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
+					epoch=epoch, epochs=self._num_epochs, 
+					iters=current_iter, loss=avg_loss, mvalue=avg_measre)
+			)			
 		return avg_loss, avg_measre

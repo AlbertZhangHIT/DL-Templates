@@ -38,7 +38,7 @@ setup(
     keywords="",
     author="Albert Zhang",
     author_email="albert.zhang.hit@gmail.com",
-    url="https://github.com/AlbertZhangHIT/foolbox-dlip",
+    url="https://github.com/AlbertZhangHIT/DL-Templates",
     license="MIT",
     packages=find_packages(),
     include_package_data=True,
