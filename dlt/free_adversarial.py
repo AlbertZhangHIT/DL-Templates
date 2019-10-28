@@ -88,12 +88,13 @@ class FreeAdversarialBaseTraining(Training):
 		for epoch in range(1, self._num_epochs+1):
 			if self._save_all_ckpt:
 				save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
-			# Update the learning rate
-			if self._scheduler is not None:
-				self._scheduler.step()
 
 			self._train(epoch)
 			avg_loss, avg_measre = self._val(epoch)
+
+			# Update the learning rate
+			if self._scheduler is not None:
+				self._scheduler.step()
 
 			torch.save({'epoch': epoch,
 				'state_dict': self._net.state_dict()}, save_model_path)
