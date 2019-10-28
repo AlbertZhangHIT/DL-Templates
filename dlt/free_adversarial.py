@@ -30,9 +30,11 @@ class FreeAdversarialBaseTraining(Training):
 		try:
 			self._num_replay = self._other_config['replay']
 		except KeyError:
-			self._num_replay = 5
-			warnings.warn("Number of replays should be set, default to 5")
+			self._num_replay = 1
+			warnings.warn("Number of replays is defaultly set to 1")
 		assert isinstance(self._num_replay, int)
+
+		self._num_epochs = int(self._num_epochs / self._num_replay)
 
 		try:
 			self._perturb = self._other_config['perturb']
@@ -183,7 +185,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				current_iter = (epoch - 1) * num_batches + i
 
 				data, label = data.to(self._device), label.to(self._device)				
-				logits = self._net(data)
+				logits = self._net(data + self.adversarial_noise[:data.size(0), ...])
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
 				current_measure = self._measure(logits, label)
