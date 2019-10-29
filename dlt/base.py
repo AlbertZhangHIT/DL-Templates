@@ -82,7 +82,6 @@ class Training(abc.ABC):
 			self._train_batch_size = batch_size['train']
 		except KeyError:
 			self._train_batch_size = 1
-		self._train_batch_size = batch_size['train']
 		try:
 			self._val_batch_size = batch_size['val']
 		except KeyError:
