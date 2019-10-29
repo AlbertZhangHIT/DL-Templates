@@ -133,7 +133,8 @@ class BaseTraining(Training):
 		raise NotImplementedError
 
 	def val(self, exp_dir):
-		self._val(epoch=1)
+		avg_loss, avg_measre = self._val(epoch=1)
+		print('Validating measure: %.4f' % avg_measre.avg)
 
 	def run(self, exp_dir):
 		os.makedirs(exp_dir, exist_ok=True)
