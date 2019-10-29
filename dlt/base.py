@@ -62,9 +62,9 @@ class Training(abc.ABC):
 	constructor with *args and **kwargs.
 	"""
 
-	def __init__(self, net, optimizer, num_epochs, dataloader, 
-		batch_size, loss_fun, measure_fun, device='gpu', scheduler=None,
-		save_all_checkpoints=False,
+	def __init__(self, net, dataloader, batch_size, loss_fun, measure_fun, 
+		optimizer=None, num_epochs=1, device='gpu', scheduler=None,
+		save_all_checkpoints=False, train=True,
 		other_config=None
 	):
 		self._net = net
@@ -92,6 +92,7 @@ class Training(abc.ABC):
 		self._scheduler = scheduler
 		self._save_all_ckpt = save_all_checkpoints
 		self._other_config = other_config
+		self._train_flag = train
 		# to customize the initialization in subclasses, please
 		# try to overwrite _initialize instead of __init__ if
 		# possible
@@ -132,37 +133,40 @@ class BaseTraining(Training):
 	def _val(self, epoch):
 		raise NotImplementedError
 
-	def val(self, exp_dir):
-		avg_loss, avg_measre = self._val(epoch=1)
-		print('Validating measure: %.4f' % avg_measre.avg)
-
 	def run(self, exp_dir):
-		os.makedirs(exp_dir, exist_ok=True)
-		save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
-		best_model_path = os.path.join(exp_dir, 'best.pth.tar')
-		best_measure = 0.
-		best_epoch = 0.
-		start = time.time()
-		for epoch in range(1, self._num_epochs+1):
-			if self._save_all_ckpt:
-				save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
+		if self._train_flag:
+			os.makedirs(exp_dir, exist_ok=True)
+			save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
+			best_model_path = os.path.join(exp_dir, 'best.pth.tar')
+			best_measure = 0.
+			best_epoch = 0.
+			start = time.time()
+			for epoch in range(1, self._num_epochs+1):
+				if self._save_all_ckpt:
+					save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 
-			self._train(epoch)
-			avg_loss, avg_measre = self._val(epoch)
+				self._train(epoch)
+				avg_loss, avg_measre = self._val(epoch)
 
-			# Update the learning rate
-			if self._scheduler is not None:
-				self._scheduler.step()
+				# Update the learning rate
+				if self._scheduler is not None:
+					self._scheduler.step()
 
-			torch.save({'epoch': epoch,
-				'state_dict': self._net.state_dict()}, save_model_path)
-			if avg_measre is not None and avg_measre.avg >= best_measure:
 				torch.save({'epoch': epoch,
-					'state_dict': self._net.state_dict(),
-					'measure': avg_measre.avg,
-					'loss': avg_loss.avg}, best_model_path)
-				best_measure = avg_measre.avg
-				best_epoch = epoch
-			print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
-		end = time.time()
-		print('Work done! Total elapsed time: %.2f s' % (end - start))
+					'state_dict': self._net.state_dict()}, save_model_path)
+				if avg_measre is not None and avg_measre.avg >= best_measure:
+					torch.save({'epoch': epoch,
+						'state_dict': self._net.state_dict(),
+						'measure': avg_measre.avg,
+						'loss': avg_loss.avg}, best_model_path)
+					best_measure = avg_measre.avg
+					best_epoch = epoch
+				print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
+			end = time.time()
+			print('Work done! Total elapsed time: %.2f s' % (end - start))
+		else:
+			start = time.time()
+			avg_loss, avg_measre = self._val(epoch=1)
+			end = time.time()
+			print('Validating loss: %.4f, measure: %.4f' % (avg_loss.avg, avg_measre.avg))
+			print('Elapsed time: %.2f s' % (end - start))
