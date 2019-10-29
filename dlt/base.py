@@ -93,6 +93,8 @@ class Training(abc.ABC):
 		self._save_all_ckpt = save_all_checkpoints
 		self._other_config = other_config
 		self._train_flag = train
+		if self._train_flag is True and self._optimizer is None:
+			raise ValueError("Optimizer should be set for training.")
 		# to customize the initialization in subclasses, please
 		# try to overwrite _initialize instead of __init__ if
 		# possible
