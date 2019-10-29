@@ -126,6 +126,9 @@ class BaseTraining(Training):
 	def _val(self, epoch):
 		raise NotImplementedError
 
+	def val(self, exp_dir):
+		self._val(epoch=1)
+
 	def run(self, exp_dir):
 		os.makedirs(exp_dir, exist_ok=True)
 		save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')

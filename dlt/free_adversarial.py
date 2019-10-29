@@ -73,6 +73,9 @@ class FreeAdversarialBaseTraining(Training):
 	def _val(self, epoch):
 		raise NotImplementedError
 
+	def val(self, exp_dir):
+		self._val(epoch=1)
+
 	def run(self, exp_dir):
 		example = self._train_loader.dataset.__getitem__(1)[0]
 		self._global_adversarial_noise(example)
