@@ -60,7 +60,7 @@ class GradientPerturb(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _gradient(self, x, y, strict=True):
+    def _gradient(self, x, y):
         raise NotImplementedError
 
     def __call__(self, x, y):
@@ -147,28 +147,5 @@ class LInfPerturbation(SingleStepGradientPerturb):
         jx = torch.arange(bsz, device=dx.device)
         dx_[jx,ix] = dx.sign()[jx,ix]
         gradient = dx_.view(*dxshape) * (self._max_ - self._min_)
-
-        return self._step_size * gradient
-
-class LinfPgdPerturbation(GradientPerturb):
-    """ 
-    PGD Adversarial Training
-    """
-    def _initialize(self):
-        if self._step_size is None:
-            self._step_size = self._eps / self._num_steps
-
-    def _clip_perturbation(self, perturbed, original):
-        perturbed = torch.min(torch.max(perturbed, original-self._eps),
-                             original+self._eps)
-        perturbed = torch.clamp(perturbed, self._min_, self._max_)
-        return perturbed
-
-    def _gradient(self, x, y):
-        with torch.enable_grad():
-            logits = self._net(x)
-            loss = self._criterion(logits, y)        
-        dx = grad(loss, x)[0] 
-        gradient = dx.sign() * (self._max_ - self._min_)
 
         return self._step_size * gradient
