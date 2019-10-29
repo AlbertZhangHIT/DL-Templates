@@ -70,11 +70,18 @@ class Training(abc.ABC):
 		self._net = net
 		self._optimizer = optimizer
 		self._num_epochs = num_epochs
-		self._train_loader = dataloader['train']
+		try:
+			self._train_loader = dataloader['train']
+		except KeyError:
+			self._train_loader = None
 		try:
 			self._val_loader = dataloader['val']
 		except KeyError:
 			self._val_loader = None
+		try:
+			self._train_batch_size = batch_size['train']
+		except KeyError:
+			self._train_batch_size = 1
 		self._train_batch_size = batch_size['train']
 		try:
 			self._val_batch_size = batch_size['val']
