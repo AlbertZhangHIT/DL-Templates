@@ -38,8 +38,7 @@ class AdversarialTraining(BaseTraining):
 			self._lipschitz_c = self._other_config['lipschitz']
 		except KeyError:
 			self._lipschitz_c = 0
-			warnings.warn("If you add Lipschitz penalty, please set `lipschitz` \
-				term in `other_config`")
+			warnings.warn("If you add Lipschitz penalty, please set `lipschitz` term in `other_config`")
 
 	def _train(self, epoch):
 		avg_loss = AverageMeter()
