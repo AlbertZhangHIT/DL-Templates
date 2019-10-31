@@ -117,52 +117,54 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 		data_stream = tqdm(enumerate(self._train_loader, 1))
 
 		for i, (data, label) in data_stream:
-			self._net.train()
-			# where we are
-			num_batches = len(self._train_loader)
-			current_iter = (epoch - 1) * num_batches + i
-			data, label = data.to(self._device), label.to(self._device)			
-			noise = self.adversarial_noise.clone().requires_grad_(True)		
+			# train on the same minibatch `_num_replay` times
+			for _ in range(self._num_replay):
+				self._net.train()
+				# where we are
+				num_batches = len(self._train_loader)
+				current_iter = (epoch - 1) * num_batches + i
+				data, label = data.to(self._device), label.to(self._device)			
+				noise = self.adversarial_noise.clone().requires_grad_(True)		
 
-			noisy = data + noise
-			noisy.clamp_(self._min, self._max)
-			noisy.sub_(self._mean).div_(self._std) # is the re-normalization crutial?
+				noisy = data + noise
+				noisy.clamp_(self._min, self._max)
+				noisy.sub_(self._mean).div_(self._std) # is the re-normalization crutial?
 
-			logits = self._net(noisy)
-			current_loss = self._loss_fun(logits, label)
+				logits = self._net(noisy)
+				current_loss = self._loss_fun(logits, label)
 
-			avg_loss.update(current_loss.item(), data.size(0))
-			current_measure = self._measure(logits, label)
-			avg_measre.update(current_measure, data.size(0))
+				avg_loss.update(current_loss.item(), data.size(0))
+				current_measure = self._measure(logits, label)
+				avg_measre.update(current_measure, data.size(0))
 
-			self._optimizer.zero_grad()
-			current_loss.backward()		
+				self._optimizer.zero_grad()
+				current_loss.backward()		
 
-			# Update the noise for the next iteration
-			pert = self._perturb(noise.grad)
-			self.adversarial_noise += pert.data
-			self.adversarial_noise.clamp_(-self._perturb._eps, self._perturb._eps)
+				# Update the noise for the next iteration
+				pert = self._perturb(noise.grad)
+				self.adversarial_noise += pert.data
+				self.adversarial_noise.clamp_(-self._perturb._eps, self._perturb._eps)
 
-			self._optimizer.step()			
+				self._optimizer.step()			
 
-			#Update the progress
-			data_stream.set_description((
-				'Training Epoch: [{epoch}/{epochs}] | '
-				'Iteration: {iters} | '
-				'progress: [{trained}/{total}] ({percent:.0f}%) | '
-				'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-				'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-				).format(
-					epoch=epoch,
-					epochs=self._num_epochs,
-					iters=current_iter,
-					trained=i,
-					total=num_batches,
-					percent=(100.*i/num_batches),
-					loss=avg_loss,
-					mvalue=avg_measre,
-					)
-			)
+				#Update the progress
+				data_stream.set_description((
+					'Training Epoch: [{epoch}/{epochs}] | '
+					'Iteration: {iters} | '
+					'progress: [{trained}/{total}] ({percent:.0f}%) | '
+					'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
+					'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
+					).format(
+						epoch=epoch,
+						epochs=self._num_epochs,
+						iters=current_iter,
+						trained=i,
+						total=num_batches,
+						percent=(100.*i/num_batches),
+						loss=avg_loss,
+						mvalue=avg_measre,
+						)
+				)
 		# Print out final information
 		print('Training [{epoch}/{epochs}], Iters {iters}, \
 			loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
@@ -186,7 +188,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				current_iter = (epoch - 1) * num_batches + i
 
 				data, label = data.to(self._device), label.to(self._device)				
-				logits = self._net(data + self.adversarial_noise[:data.size(0), ...])
+				logits = self._net(data)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
 				current_measure = self._measure(logits, label)
