@@ -16,7 +16,7 @@ class CommonTraining(BaseTraining):
 	"""
 	def _initialize(self):
 		try:
-			self._grad_clip_param = self._other_config['grad_clip']
+			self._grad_clip_param = self._other_config['grad_clip_param']
 		except KeyError:
 			self._grad_clip_param = 0
 		try:
