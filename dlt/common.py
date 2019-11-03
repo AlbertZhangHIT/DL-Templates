@@ -14,6 +14,23 @@ class CommonTraining(BaseTraining):
 	please use `python -u yourscript.py | tee yourfile` to get the expected
 	results. (Refer to https://github.com/tqdm/tqdm/issues/706 answered by f0k)
 	"""
+	def _initialize(self):
+		try:
+			self._grad_clip_param = self._other_config['grad_clip']
+		except KeyError:
+			self._grad_clip_param = 0
+		try:
+			self._grad_clip = self._other_config['grad_clip_fun']
+		except KeyError:
+			self._grad_clip = None
+			self._grad_clip_param = 0
+		
+	def _grad_clip_fun(self):
+		if self._grad_clip_param > 0:
+			self._grad_clip(self._net.parameters(), self._grad_clip_param)
+		else:
+			pass
+
 	def _train(self, epoch):
 		avg_loss = AverageMeter()
 		avg_measre = AverageMeter()
@@ -30,6 +47,8 @@ class CommonTraining(BaseTraining):
 			logits = self._net(data)
 			current_loss = self._loss_fun(logits, label)
 			current_loss.backward()
+
+			self._grad_clip_fun()
 
 			self._optimizer.step()
 
