@@ -7,29 +7,15 @@ from .base import BaseTraining, AverageMeter
 from tqdm import tqdm
 
 
-class CommonTraining(BaseTraining):
-	"""Common Training frames if both data and label are ready.
+class PlainTraining(BaseTraining):
+	"""Plain Training frames if both data and label are ready.
 	The measure function only receives two arguments.
 	If you want to redirect the logging information to files using `tee`,
 	please use `python -u yourscript.py | tee yourfile` to get the expected
 	results. (Refer to https://github.com/tqdm/tqdm/issues/706 answered by f0k)
 	"""
-	def _initialize(self):
-		try:
-			self._grad_clip_param = self._other_config['grad_clip_param']
-		except KeyError:
-			self._grad_clip_param = 0
-		try:
-			self._grad_clip = self._other_config['grad_clip_fun']
-		except KeyError:
-			self._grad_clip = None
-			self._grad_clip_param = 0
-		
 	def _grad_clip_fun(self):
-		if self._grad_clip_param > 0:
-			self._grad_clip(self._net.parameters(), self._grad_clip_param)
-		else:
-			pass
+		pass
 
 	def _train(self, epoch):
 		avg_loss = AverageMeter()
