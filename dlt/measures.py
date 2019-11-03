@@ -19,3 +19,9 @@ def classPredict(prediction, label):
 	_, predicted = torch.max(prediction.data, 1)
 
 	return predicted.eq(label.data).sum().item()
+
+def numParameters(net):
+	count = 0
+	for p in net.parameters():
+		count += p.data.nelement()
+	return count
