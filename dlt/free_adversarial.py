@@ -100,7 +100,8 @@ class FreeAdversarialBaseTraining(BaseTraining):
 				best_epoch = epoch
 			print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
 		end = time.time()
-		print('Work done! Total elapsed time: %.2f s' % (end - start))		
+		print('Work done! Total elapsed time: %.2f s' % (end - start))	
+		self._logger.close()	
 
 
 class FreeAdversarialTraining(FreeAdversarialBaseTraining):
