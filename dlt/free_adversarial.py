@@ -187,7 +187,9 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				num_batches = len(self._val_loader)
 				current_iter = (epoch - 1) * num_batches + i
 
-				data, label = data.to(self._device), label.to(self._device)				
+				data, label = data.to(self._device), label.to(self._device)	
+				data.sub_(self._mean).div_(self._std)	
+						
 				logits = self._net(data)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
