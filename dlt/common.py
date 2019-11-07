@@ -30,7 +30,8 @@ class PlainTraining(BaseTraining):
 
 			data, label = data.to(self._device), label.to(self._device)
 			self._optimizer.zero_grad()
-			logits = self._net(data)
+			y = self._forward_op(data)
+			logits = self._net(y)
 			current_loss = self._loss_fun(logits, label)
 			current_loss.backward()
 
@@ -89,7 +90,8 @@ class PlainTraining(BaseTraining):
 				current_iter = (epoch - 1) * num_batches + i
 
 				data, label = data.to(self._device), label.to(self._device)				
-				logits = self._net(data)
+				y = self._forward_op(data)
+				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
 				current_measure = self._measure(logits, label)

@@ -6,6 +6,7 @@ from tqdm import tqdm
 import functools
 import abc
 from abc import abstractmethod
+from .operator import forwardOperator, backwardOperator
 
 class AverageMeter(object):
 	"""Computes and stores the average and current values
@@ -54,6 +55,11 @@ class Training(abc.ABC):
 	scheduler : a :class: `torch.optim.lr_scheduler` instance
 		The learning rate tuning scheduler.
 
+	save_all_checkpoints: a :class: `bool` instance
+		The flag for whether saving all checkpoints
+	train: a :class: `bool` instance
+		The flag for training or testing
+
 	other_config: a :class: `dict`
 		Other configurations for customization.
 	Notes
@@ -65,6 +71,7 @@ class Training(abc.ABC):
 	def __init__(self, net, dataloader, batch_size, loss_fun, measure_fun, 
 		optimizer=None, num_epochs=1, device='gpu', scheduler=None,
 		save_all_checkpoints=False, train=True,
+		forward_op=forwardOperator(), backward_op=backwardOperator(),
 		other_config=None
 	):
 		self._net = net
@@ -98,6 +105,8 @@ class Training(abc.ABC):
 		self._logger = None
 		self._log_freq_train = 100
 		self._log_freq_val = 50
+		self._forward_op = forward_op
+		self._backward_op = backward_op
 		# to customize the initialization in subclasses, please
 		# try to overwrite _initialize instead of __init__ if
 		# possible

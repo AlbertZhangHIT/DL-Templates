@@ -124,7 +124,8 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				noisy.clamp_(self._min, self._max)
 				noisy.sub_(self._mean).div_(self._std) # is the re-normalization crutial?
 
-				logits = self._net(noisy)
+				y = self._forward_op(noisy)
+				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
 
 				avg_loss.update(current_loss.item(), data.size(0))
@@ -189,7 +190,8 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				data, label = data.to(self._device), label.to(self._device)	
 				data.sub_(self._mean).div_(self._std)	
 
-				logits = self._net(data)
+				y = self._forward_op(data)
+				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
 				current_measure = self._measure(logits, label)

@@ -23,9 +23,11 @@ class LinfIterativePerturbation(IterativeBasePerturbation):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            logits = self._net(x)
+            xx = self._forward_op(x)
+            logits = self._net(xx)
             loss = self._criterion(logits, y)        
         dx = grad(loss, x)[0] 
+        dx = self._backward_op(dx)
         gradient = dx.sign() * (self._max_ - self._min_)
 
         return self._step_size * gradient
@@ -46,9 +48,11 @@ class L2IterativePerturbation(IterativeBasePerturbation):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            logits = self._net(x)
+            xx = self._forward_op(x)
+            logits = self._net(xx)
             loss = self._criterion(logits, y)        
         dx = grad(loss, x)[0] 
+        dx = self._backward_op(dx)
         norm = dx.pow(2).mean().sqrt()
         norm = max(1e-15, norm)
         gradient = dx / norm * (self._max_ - self._min_)
@@ -68,9 +72,11 @@ class L1IterativePerturbation(IterativeBasePerturbation):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            logits = self._net(x)
+            xx = self._forward_op(x)
+            logits = self._net(xx)
             loss = self._criterion(logits, y)        
         dx = grad(loss, x)[0] 
+        dx = self._backward_op(dx)
         norm = dx.abs().mean()
         norm = max(1e-15, norm)
         gradient = dx / norm * (self._max_ - self._min_)

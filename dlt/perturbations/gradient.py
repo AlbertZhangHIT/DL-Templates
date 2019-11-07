@@ -3,7 +3,7 @@ from torch.autograd import grad
 from math import sqrt, inf
 import torch
 import abc
-
+from ..operator import forwardOperator, backwardOperator
 
 class GradientPerturb(abc.ABC):
     """Base class for all adversarial training perturbations.
@@ -28,7 +28,8 @@ class GradientPerturb(abc.ABC):
     """
 
     def __init__(self, net, criterion, eps=0., num_steps=1, 
-        step_size=None, min_=0., max_=1., random_start=False):
+        step_size=None, min_=0., max_=1., random_start=False, 
+        forward_op=forwardOperator(), backward_op=backwardOperator()):
         """Initialize with a net, a maximum Euclidean perturbation 
         distance epsilon, and a criterion (eg the loss function)"""
         self._net = net
@@ -39,6 +40,8 @@ class GradientPerturb(abc.ABC):
         self._min_ = min_
         self._max_ = max_
         self._random_start = random_start
+        self._forward_op = forward_op
+        self._backward_op = backward_op
 
         self._initialize()
 
@@ -99,9 +102,11 @@ class L1Perturbation(SingleStepGradientPerturb):
     """
     def _gradient(self, x, y):
         with torch.enable_grad():
-            logits = self._net(x)
+            xx = self._forward_op(x)
+            logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, x)[0]
+        dx = grad(loss, xx)[0]
+        dx = self._backward_op(dx)
         gradient = dx.sign() * (self._max_ - self._min_)
 
         return self._step_size * gradient
@@ -114,9 +119,11 @@ class L2Perturbation(SingleStepGradientPerturb):
     """
     def _gradient(self, x, y):
         with torch.enable_grad():
-            logits = self._net(x)
+            xx = self._forward_op(x)
+            logits = self._net(xx)
             loss = self._criterion(logits, y)
         dx = grad(loss, x)[0]
+        dx = self._backward_op(dx)
 
         dxshape = dx.shape
         dx = dx.view(dxshape[0],-1)
@@ -135,9 +142,11 @@ class LInfPerturbation(SingleStepGradientPerturb):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            logits = self._net(x)
+            xx = self._forward_op(x)
+            logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, x)[0]  
+        dx = grad(loss, x)[0]
+        dx = self._backward_op(dx)  
 
         dxshape = dx.shape
         bsz = dxshape[0]

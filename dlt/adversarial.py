@@ -61,7 +61,8 @@ class AdversarialTraining(BaseTraining):
 				data.requires_grad_(False)
 
 			self._optimizer.zero_grad()
-			logits = self._net(data)
+			y = self._forward_op(data)
+			logits = self._net(y)
 			current_loss = self._loss_fun(logits, label)
 			current_loss = self._add_penalty(current_loss, data)
 			if self._lipschitz_c > 0:
