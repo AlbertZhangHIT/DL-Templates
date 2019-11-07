@@ -3,7 +3,7 @@ import time
 import os, shutil
 import torch
 import torch.nn as nn
-from .base import Training, AverageMeter
+from .base import BaseTraining, AverageMeter
 from tqdm import tqdm
 import warnings
 
@@ -16,7 +16,7 @@ Reference: Shafahi, A., Najibi, M., Ghiasi, A., Xu, Z.,
 https://github.com/mahyarnajibi/FreeAdversarialTraining
 """
 
-class FreeAdversarialBaseTraining(Training):
+class FreeAdversarialBaseTraining(BaseTraining):
 	"""Free Adversarial Training frames if both data and label are ready.
 	The measure function only receives two arguments.
 	If you want to redirect the logging information to files using `tee`,
@@ -65,14 +65,6 @@ class FreeAdversarialBaseTraining(Training):
 	def _global_adversarial_noise(self, data):
 		self.adversarial_noise = torch.zeros((self._train_batch_size,)+data.size()).to(self._device)
 
-	@abc.abstractmethod
-	def _train(self, epoch):
-		raise NotImplementedError
-
-	@abc.abstractmethod
-	def _val(self, epoch):
-		raise NotImplementedError
-
 	def run(self, exp_dir):
 		example = self._train_loader.dataset.__getitem__(1)[0]
 		self._global_adversarial_noise(example)
@@ -80,6 +72,7 @@ class FreeAdversarialBaseTraining(Training):
 		self._std = self._std.expand_as(example).to(self._device)
 
 		os.makedirs(exp_dir, exist_ok=True)
+		self._init_logger(exp_dir)
 		save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
 		best_model_path = os.path.join(exp_dir, 'best.pth.tar')
 		best_measure = 0.
@@ -165,13 +158,18 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 						mvalue=avg_measre,
 						)
 				)
-		# Print out final information
-		print('Training [{epoch}/{epochs}], Iters {iters}, \
-			loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-			measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-				epoch=epoch, epochs=self._num_epochs, 
-				iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-		)
+			if (current_iter-1)%self._log_freq_train == 0:
+				print('Training Epoch: [{epoch}/{epochs}] | '
+					'Iteration: {iters} | '
+					'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
+					'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
+					.format(
+						epoch=epoch,
+						epochs=self._num_epochs,
+						iters=current_iter,
+						loss=avg_loss,
+						mvalue=avg_measre,), file=self._logger, flush=True
+				)
 
 	def _val(self, epoch):
 		# check validate data loader
@@ -189,7 +187,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 
 				data, label = data.to(self._device), label.to(self._device)	
 				data.sub_(self._mean).div_(self._std)	
-						
+
 				logits = self._net(data)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
@@ -213,11 +211,17 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 						mvalue=avg_measre,
 						)
 				)
-			# Print out final information
-			print('Validating [{epoch}/{epochs}], Iters {iters}, \
-				loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | \
-				measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'.format(
-					epoch=epoch, epochs=self._num_epochs, 
-					iters=current_iter, loss=avg_loss, mvalue=avg_measre)
-			)			
+				if (current_iter-1)%self._log_freq_val == 0:
+					print('Validating Epoch: [{epoch}/{epochs}] | '
+						'Iteration: {iters} | '
+						'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
+						'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
+						.format(
+							epoch=epoch,
+							epochs=self._num_epochs,
+							iters=current_iter,
+							loss=avg_loss,
+							mvalue=avg_measre,
+							), file=self._logger, flush=True
+					)			
 		return avg_loss, avg_measre

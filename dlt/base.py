@@ -6,6 +6,7 @@ from tqdm import tqdm
 import functools
 import abc
 from abc import abstractmethod
+import logging
 
 class AverageMeter(object):
 	"""Computes and stores the average and current values
@@ -95,6 +96,9 @@ class Training(abc.ABC):
 		self._train_flag = train
 		if self._train_flag is True and self._optimizer is None:
 			raise ValueError("Optimizer should be set for training.")
+		self._logger = None
+		self._log_freq_train = 100
+		self._log_freq_val = 50
 		# to customize the initialization in subclasses, please
 		# try to overwrite _initialize instead of __init__ if
 		# possible
@@ -135,9 +139,19 @@ class BaseTraining(Training):
 	def _val(self, epoch):
 		raise NotImplementedError
 
+	def _init_logger(self, exp_dir):
+		# first create logging file
+		f = open(os.path.join(exp_dir, 'log.txt'), 'w')
+		f.close()
+
+		f = open(os.path.join(exp_dir, 'log.txt'), 'a')
+		self._logger = f
+
+
 	def run(self, exp_dir):
 		if self._train_flag:
 			os.makedirs(exp_dir, exist_ok=True)
+			self._init_logger(exp_dir)
 			save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
 			best_model_path = os.path.join(exp_dir, 'best.pth.tar')
 			best_measure = 0.
@@ -166,6 +180,7 @@ class BaseTraining(Training):
 				print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
 			end = time.time()
 			print('Work done! Total elapsed time: %.2f s' % (end - start))
+			self._logger.close()
 		else:
 			start = time.time()
 			avg_loss, avg_measre = self._val(epoch=1)
