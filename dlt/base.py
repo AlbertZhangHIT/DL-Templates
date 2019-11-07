@@ -6,7 +6,6 @@ from tqdm import tqdm
 import functools
 import abc
 from abc import abstractmethod
-import logging
 
 class AverageMeter(object):
 	"""Computes and stores the average and current values
