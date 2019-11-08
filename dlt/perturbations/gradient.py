@@ -71,9 +71,9 @@ class GradientPerturb(abc.ABC):
  
         if self._random_start:
             noise = torch.zeros_like(x).uniform_(-self._eps, self._eps)
-            x_hat = x + noise
+            x_hat = x.clone() + noise
         else:
-            x_hat = x
+            x_hat = x.clone()
         for _ in range(self._num_steps):
             x_hat.requires_grad_(True)
             gradient = self._gradient(x_hat, y)
@@ -104,7 +104,7 @@ class L1Perturbation(SingleStepGradientPerturb):
                              original+self._eps)
         perturbed = torch.clamp(perturbed, self._min_, self._max_)
         return perturbed 
-        
+
     def _gradient(self, x, y):
         with torch.enable_grad():
             xx = self._forward_op(x)
