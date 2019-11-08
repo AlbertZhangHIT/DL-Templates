@@ -124,7 +124,7 @@ class L1Perturbation(SingleStepGradientPerturb):
     def _clip_perturbation(self, perturbed, original):
         perturbed = torch.min(torch.max(perturbed, original-self._eps),
                              original+self._eps)
-        perturbed = torch.max(torch.min(perturbed, self._min_), self._max_)
+        perturbed = torch.clamp(perturbed, self._min_, self._max_)
         return perturbed 
 
     def _gradient(self, x, y):
