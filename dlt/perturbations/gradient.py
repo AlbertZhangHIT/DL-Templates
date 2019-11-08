@@ -122,6 +122,13 @@ class L2Perturbation(SingleStepGradientPerturb):
     """
     Penalize a loss function by the L2 norm of the loss's gradient.
     """
+    def _clip_perturbation(self, perturbed, original):
+        norm = perturbed.pow(2).mean().sqrt()
+        norm = max(1e-15, norm)
+        factor = min(1, self._eps * (self._max_ - self._min_) / norm)
+
+        return perturbed * factor
+        
     def _gradient(self, x, y):
         with torch.enable_grad():
             xx = self._forward_op(x)
