@@ -104,6 +104,7 @@ class L1Perturbation(SingleStepGradientPerturb):
                              original+self._eps)
         perturbed = torch.clamp(perturbed, self._min_, self._max_)
         return perturbed 
+        
     def _gradient(self, x, y):
         with torch.enable_grad():
             xx = self._forward_op(x)
