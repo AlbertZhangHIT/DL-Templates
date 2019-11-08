@@ -122,6 +122,7 @@ class AdversarialTraining(BaseTraining):
 				current_iter = (epoch - 1) * num_batches + i
 
 				data, label = data.to(self._device), label.to(self._device)	
+				data = self._perturb(data, label)
 
 				y = self._forward_op(data)			
 				logits = self._net(y)
