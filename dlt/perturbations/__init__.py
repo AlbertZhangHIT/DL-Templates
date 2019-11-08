@@ -1,5 +1,5 @@
 from .gradient import (L1Perturbation,
-		FGSM, L2Perturbation, LInfPerturbation)
+		FGSM, RFGSM, L2Perturbation, LInfPerturbation)
 from .iterative_projected_gradient import (LinfIterativePerturbation,
 		ProjectedGradientDescent, PGD, L2IterativePerturbation, 
 		L1IterativePerturbation)
