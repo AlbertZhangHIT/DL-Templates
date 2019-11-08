@@ -147,17 +147,18 @@ class AdversarialTraining(BaseTraining):
 						mvalue=avg_measre,
 						)
 				)
-				if (current_iter-1)%self._log_freq_val == 0:
-					print('Validating Epoch: [{epoch}/{epochs}] | '
-						'Iteration: {iters} | '
-						'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-						'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-						.format(
-							epoch=epoch,
-							epochs=self._num_epochs,
-							iters=current_iter,
-							loss=avg_loss,
-							mvalue=avg_measre,
-							), file=self._logger, flush=True
-					)		
+				if self._train_flag:
+					if (current_iter-1)%self._log_freq_val == 0:
+						print('Validating Epoch: [{epoch}/{epochs}] | '
+							'Iteration: {iters} | '
+							'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
+							'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
+							.format(
+								epoch=epoch,
+								epochs=self._num_epochs,
+								iters=current_iter,
+								loss=avg_loss,
+								mvalue=avg_measre,
+								), file=self._logger, flush=True
+						)		
 		return avg_loss, avg_measre
