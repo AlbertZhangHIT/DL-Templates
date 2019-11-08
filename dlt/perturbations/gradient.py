@@ -91,10 +91,7 @@ class SingleStepGradientPerturb(GradientPerturb):
         self._step_size = self._eps
 
     def _clip_perturbation(self, perturbed, original):
-        perturbed = torch.min(torch.max(perturbed, original-self._eps),
-                             original+self._eps)
-        perturbed = torch.clamp(perturbed, self._min_, self._max_)
-        return perturbed   
+        return perturbed
 
 class L1Perturbation(SingleStepGradientPerturb):
     """
@@ -102,6 +99,11 @@ class L1Perturbation(SingleStepGradientPerturb):
 
     Equivalent to the Fast Gradient Signed Method.
     """
+    def _clip_perturbation(self, perturbed, original):
+        perturbed = torch.min(torch.max(perturbed, original-self._eps),
+                             original+self._eps)
+        perturbed = torch.clamp(perturbed, self._min_, self._max_)
+        return perturbed 
     def _gradient(self, x, y):
         with torch.enable_grad():
             xx = self._forward_op(x)
