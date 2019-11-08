@@ -88,7 +88,6 @@ class SingleStepGradientPerturb(GradientPerturb):
     """
     def _initialize(self):
         self._num_steps = 1
-        self._random_start = False
         self._step_size = self._eps
 
     def _clip_perturbation(self, perturbed, original):
