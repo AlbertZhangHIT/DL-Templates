@@ -123,8 +123,8 @@ class AdversarialTraining(BaseTraining):
 
 				data, label = data.to(self._device), label.to(self._device)	
 
-				data = self._perturb(data, label)			
-				logits = self._net(data)
+				y = self._forward_op(data)			
+				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
 				current_measure = self._measure(logits, label)
