@@ -13,15 +13,15 @@ class GradientPerturb(abc.ABC):
         The net should be neural network in torch.
     criterion: a :class: `torch.nn.Loss`
         The loss function used in training neural networks.
-    eps: a :class: `float`
+    eps: a :class: `float` or `tensor`
         The maximum quantity of adversarial noise.
     num_steps: a :class: `int`
         The number of times of adversarial attack.
     step_size: a :class: `float`
         The step size of each step adversarial attack.
-    max_: a :class: `float`
+    max_: a :class: `float` or `tensor`
         The maximum numerical bound.
-    min_: a :class: `float`
+    min_: a :class: `float` or `tensor`
         The minimum numerical bound.
     random_start: a :class: `bool`
         Whether to do random perturbation before adversarial attack.
@@ -42,6 +42,20 @@ class GradientPerturb(abc.ABC):
         self._random_start = random_start
         self._forward_op = forward_op
         self._backward_op = backward_op
+
+        assert isinstance(self._eps, float) or isinstance(self._eps, torch.Tensor), \
+            "Argument `eps` should be float number or torch.Tensor"
+        assert isinstance(self._min_, float) or isinstance(self._min_, torch.Tensor), \
+            "Argument `min_` should be float number or torch.Tensor"
+        assert isinstance(self._max_, float) or isinstance(self._max_, torch.Tensor), \
+            "Argument `max_` should be float number or torch.Tensor"        
+        if isinstance(self._eps, float):
+            self._eps = torch.Tensor(self._eps)
+        if isinstance(self._max_, float):
+            self._max_ = torch.Tensor(self._max_)
+        if isinstance(self._min_, float):
+            self._min_ = torch.Tensor(self._min_)
+        self._ones = torch.ones_like(self._eps)
 
         self._initialize()
 
@@ -68,9 +82,14 @@ class GradientPerturb(abc.ABC):
 
     def __call__(self, x, y):
         self._prep_net()
- 
+        self._eps.to(x.device, non_blocking=True)
+        self._min_.to(x.device, non_blocking=True)
+        self._max_.to(x.device, non_blocking=True)
+        self._ones.to(x.device, non_blocking=True)
         if self._random_start:
-            noise = torch.zeros_like(x).uniform_(-self._eps, self._eps)
+            noise = torch.zeros_like(x)
+            for i in range(len(self._eps)):
+                noise[:, i, ...].uniform_(-self._eps[i], self._eps[i])
             x_hat = x.clone() + noise
         else:
             x_hat = x.clone()
@@ -125,7 +144,7 @@ class L2Perturbation(SingleStepGradientPerturb):
     def _clip_perturbation(self, perturbed, original):
         norm = perturbed.pow(2).mean().sqrt()
         norm = max(1e-15, norm)
-        factor = min(1, self._eps * (self._max_ - self._min_) / norm)
+        factor = torch.min(self._ones, self._eps * (self._max_ - self._min_) / norm)
 
         return perturbed * factor
         
