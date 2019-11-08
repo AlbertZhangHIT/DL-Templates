@@ -48,9 +48,7 @@ class GradientPerturb(abc.ABC):
         assert isinstance(self._min_, float) or isinstance(self._min_, torch.Tensor), \
             "Argument `min_` should be float number or torch.Tensor"
         assert isinstance(self._max_, float) or isinstance(self._max_, torch.Tensor), \
-            "Argument `max_` should be float number or torch.Tensor"   
-        assert isinstance(self._step_size, float) or isinstance(self._max_, torch.Tensor) or self._step_size is None, \
-            "Argument `max_` should be float number or torch.Tensor"      
+            "Argument `max_` should be float number or torch.Tensor"        
         if isinstance(self._eps, float):
             self._eps = torch.Tensor(self._eps)
         if isinstance(self._max_, float):
@@ -91,7 +89,7 @@ class GradientPerturb(abc.ABC):
         if self._random_start:
             noise = torch.zeros_like(x)
             for i in range(len(self._eps)):
-                noise[:, i, ...].uniform_(-self._eps[i].item(), self._eps[i].item())
+                noise[:, i, ...].uniform_(-self._eps[i], self._eps[i])
             x_hat = x.clone() + noise
         else:
             x_hat = x.clone()
@@ -109,8 +107,7 @@ class SingleStepGradientPerturb(GradientPerturb):
     """
     def _initialize(self):
         self._num_steps = 1
-        if self._step_size is None:
-            self._step_size = self._eps
+        self._step_size = self._eps
 
     def _clip_perturbation(self, perturbed, original):
         return perturbed
