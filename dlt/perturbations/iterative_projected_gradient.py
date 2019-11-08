@@ -42,7 +42,7 @@ class L2IterativePerturbation(IterativeBasePerturbation):
     def _clip_perturbation(self, perturbed, original):
         norm = perturbed.pow(2).mean().sqrt()
         norm = max(1e-15, norm)
-        factor = torch.min(self._ones, self._eps * (self._max_ - self._min_) / norm)
+        factor = min(1, self._eps * (self._max_ - self._min_) / norm)
 
         return perturbed * factor
 
@@ -66,7 +66,7 @@ class L1IterativePerturbation(IterativeBasePerturbation):
     def _clip_perturbation(self, perturbed, original):
         norm = perturbed.abs().mean()
         norm = max(1e-15, norm)
-        factor = torch.min(self._ones, self._eps * (self._max_ - self._min_) / norm)
+        factor = min(1, self._eps * (self._max_ - self._min_) / norm)
 
         return perturbed * factor
 
