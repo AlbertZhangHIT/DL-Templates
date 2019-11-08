@@ -117,6 +117,26 @@ class L1Perturbation(SingleStepGradientPerturb):
 
 FGSM = L1Perturbation
 
+class RFGSM(L1Perturbation):
+    """
+    R+FGSM: FGSM variant that prepends the gradient computation by a random step
+    Reference: Ensemble adversarial training: attacks and defenses. ICLR 2018, 
+    url: https://openreview.net/pdf?id=rkZvSe-RZ
+    """
+    def _gradient(self, x, y):
+        x_new = x + self._step_size * torch.zeros_like(x).normal_().sign()
+        x_new = self._clip_perturbation(x_new, x)
+        with torch.enable_grad():
+            xx = self._forward_op(x_new)
+            logits = self._net(xx)
+            loss = self._criterion(logits, y)
+        dx = grad(loss, xx)[0]
+        dx = self._backward_op(dx)
+        gradient = dx.sign() * (self._max_ - self._min_)
+
+        return (self._eps - self._step_size) * gradient
+
+
 class L2Perturbation(SingleStepGradientPerturb):
     """
     Penalize a loss function by the L2 norm of the loss's gradient.
