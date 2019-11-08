@@ -121,7 +121,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				noise = self.adversarial_noise.clone().requires_grad_(True)		
 
 				noisy = data + noise
-				noisy.clamp_(self._min, self._max)
+				noisy = torch.max(torch.min(noise, self._min), self._max)
 				noisy.sub_(self._mean).div_(self._std) # is the re-normalization crutial?
 
 				y = self._forward_op(noisy)
@@ -138,7 +138,9 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				# Update the noise for the next iteration
 				pert = self._perturb(noise.grad)
 				self.adversarial_noise += pert.data
-				self.adversarial_noise.clamp_(-self._perturb._eps, self._perturb._eps)
+				#self.adversarial_noise.clamp_(-self._perturb._eps, self._perturb._eps)
+				self.adversarial_noise = torch.max(torch.min(self.adversarial_noise, -self._perturb._eps), 
+									self._perturb._eps)
 
 				self._optimizer.step()			
 
