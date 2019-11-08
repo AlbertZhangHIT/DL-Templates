@@ -91,7 +91,10 @@ class SingleStepGradientPerturb(GradientPerturb):
         self._step_size = self._eps
 
     def _clip_perturbation(self, perturbed, original):
-        return perturbed    
+        perturbed = torch.min(torch.max(perturbed, original-self._eps),
+                             original+self._eps)
+        perturbed = torch.clamp(perturbed, self._min_, self._max_)
+        return perturbed   
 
 class L1Perturbation(SingleStepGradientPerturb):
     """
