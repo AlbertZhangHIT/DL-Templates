@@ -86,7 +86,8 @@ class FreeAdversarialBaseTraining(BaseTraining):
 			avg_loss, avg_measre = self._val(epoch)
 
 			# Update the learning rate
-			if self._scheduler is not None:
+			if self._scheduler is not None and not isinstance(self._scheduler, torch.optim.CyclicLR) 
+				and not isinstance(self._scheduler, torch.optim.OneCycleLR):
 				self._scheduler.step()
 
 			torch.save({'epoch': epoch,
@@ -141,6 +142,10 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				self.adversarial_noise.clamp_(-self._perturb._eps, self._perturb._eps)
 
 				self._optimizer.step()			
+
+				if isinstance(self._scheduler, torch.optim.CyclicLR) or 
+					isinstance(self._scheduler, torch.optim.OneCycleLR):
+					self._scheduler.step()
 
 				#Update the progress
 				data_stream.set_description((

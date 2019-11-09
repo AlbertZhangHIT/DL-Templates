@@ -72,6 +72,10 @@ class AdversarialTraining(BaseTraining):
 
 			self._optimizer.step()
 
+			if isinstance(self._scheduler, torch.optim.CyclicLR) or 
+				isinstance(self._scheduler, torch.optim.OneCycleLR):
+				self._scheduler.step()
+
 			avg_loss.update(current_loss.item(), data.size(0))
 			current_measure = self._measure(logits, label)
 			avg_measre.update(current_measure, data.size(0))
