@@ -91,7 +91,7 @@ class LSSGD(Optimizer):
             else:
                 cs.append(None)
         self.sizes = sizes
-        self.cs = self.cs
+        self.cs = cs
 
 
     def __setstate__(self, state):

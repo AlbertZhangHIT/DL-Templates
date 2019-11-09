@@ -8,3 +8,5 @@ from .perturbations import (L1Perturbation,
 		ProjectedGradientDescent, PGD, L2IterativePerturbation, 
 		L1IterativePerturbation)
 from .perturbations import fgsm
+
+from .optim import LSSGD
