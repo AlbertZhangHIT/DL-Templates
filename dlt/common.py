@@ -39,8 +39,8 @@ class PlainTraining(BaseTraining):
 
 			self._optimizer.step()
 
-			if isinstance(self._scheduler, torch.optim.CyclicLR) or 
-				isinstance(self._scheduler, torch.optim.OneCycleLR):
+			if isinstance(self._scheduler, torch.optim.lr_scheduler.CyclicLR) or \
+				isinstance(self._scheduler, torch.optim.lr_scheduler.OneCycleLR):
 				self._scheduler.step()
 
 			avg_loss.update(current_loss.item(), data.size(0))
