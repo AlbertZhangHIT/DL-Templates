@@ -39,6 +39,8 @@ class AdversarialTraining(BaseTraining):
 		except KeyError:
 			self._lipschitz_c = 0
 			warnings.warn("If you add Lipschitz penalty, please set `lipschitz` term in `other_config`")
+		self._perturbed_data = None
+		self._perturbed_logits = None
 
 	def _train(self, epoch):
 		avg_loss = AverageMeter()
@@ -128,9 +130,11 @@ class AdversarialTraining(BaseTraining):
 				data, label = data.to(self._device), label.to(self._device)	
 				if not self._train_flag:
 					data = self._perturb(data, label)
+					self._perturbed_data = data
 
 				y = self._forward_op(data)			
 				logits = self._net(y)
+				self._perturbed_logits = logits
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
 				current_measure = self._measure(logits, label)
