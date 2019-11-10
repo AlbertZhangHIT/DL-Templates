@@ -156,8 +156,9 @@ class BaseTraining(Training):
 		self._logger = f
 
 
-	def run(self, exp_dir):
+	def run(self, exp_dir=None):
 		if self._train_flag:
+			assert exp_dir != None
 			os.makedirs(exp_dir, exist_ok=True)
 			self._init_logger(exp_dir)
 			save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
@@ -191,6 +192,8 @@ class BaseTraining(Training):
 			print('Work done! Total elapsed time: %.2f s' % (end - start))
 			self._logger.close()
 		else:
+			if exp_dir is not None:
+				os.makedirs(exp_dir, exist_ok=True)
 			start = time.time()
 			avg_loss, avg_measre = self._val(epoch=1)
 			end = time.time()
