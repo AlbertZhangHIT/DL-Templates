@@ -109,7 +109,7 @@ class L1Perturbation(SingleStepGradientPerturb):
             xx = self._forward_op(x)
             logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, xx)[0]
+        dx = grad(loss, xx, torch.ones_like(loss))[0]
         dx = self._backward_op(dx)
         gradient = dx.sign() * (self._max_ - self._min_)
 
@@ -130,7 +130,7 @@ class RFGSM(L1Perturbation):
             xx = self._forward_op(x_new)
             logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, xx)[0]
+        dx = grad(loss, xx, torch.ones_like(loss))[0]
         dx = self._backward_op(dx)
         gradient = dx.sign() * (self._max_ - self._min_)
 
@@ -153,7 +153,7 @@ class L2Perturbation(SingleStepGradientPerturb):
             xx = self._forward_op(x)
             logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, x)[0]
+        dx = grad(loss, x, torch.ones_like(loss))[0]
         dx = self._backward_op(dx)
 
         dxshape = dx.shape
@@ -176,7 +176,7 @@ class LInfPerturbation(SingleStepGradientPerturb):
             xx = self._forward_op(x)
             logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, x)[0]
+        dx = grad(loss, x, torch.ones_like(loss))[0]
         dx = self._backward_op(dx)  
 
         dxshape = dx.shape

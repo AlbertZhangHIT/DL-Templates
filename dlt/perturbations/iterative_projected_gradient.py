@@ -26,7 +26,7 @@ class LinfIterativePerturbation(IterativeBasePerturbation):
             xx = self._forward_op(x)
             logits = self._net(xx)
             loss = self._criterion(logits, y)        
-        dx = grad(loss, x)[0] 
+        dx = grad(loss, x, torch.ones_like(loss))[0] 
         dx = self._backward_op(dx)
         gradient = dx.sign() * (self._max_ - self._min_)
 
@@ -51,7 +51,7 @@ class L2IterativePerturbation(IterativeBasePerturbation):
             xx = self._forward_op(x)
             logits = self._net(xx)
             loss = self._criterion(logits, y)        
-        dx = grad(loss, x)[0] 
+        dx = grad(loss, x, torch.ones_like(loss))[0] 
         dx = self._backward_op(dx)
         norm = dx.pow(2).mean().sqrt()
         norm = max(1e-15, norm)
@@ -75,7 +75,7 @@ class L1IterativePerturbation(IterativeBasePerturbation):
             xx = self._forward_op(x)
             logits = self._net(xx)
             loss = self._criterion(logits, y)        
-        dx = grad(loss, x)[0] 
+        dx = grad(loss, x, torch.ones_like(loss))[0] 
         dx = self._backward_op(dx)
         norm = dx.abs().mean()
         norm = max(1e-15, norm)
