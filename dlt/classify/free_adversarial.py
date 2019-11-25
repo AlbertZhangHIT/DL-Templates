@@ -79,8 +79,9 @@ class FreeAdversarialBaseTraining(BaseTraining):
 		best_epoch = 0.
 		start = time.time()
 		for epoch in range(1, self._num_epochs+1):
-			if self._save_all_ckpt:
-				save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
+			if self._save_ckpt_freq:
+				if epoch%self._save_ckpt_freq==0:
+					save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 
 			self._train(epoch)
 			avg_loss, avg_measre = self._val(epoch)

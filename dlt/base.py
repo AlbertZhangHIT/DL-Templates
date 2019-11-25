@@ -55,8 +55,8 @@ class Training(abc.ABC):
 	scheduler : a :class: `torch.optim.lr_scheduler` instance
 		The learning rate tuning scheduler.
 
-	save_all_checkpoints: a :class: `bool` instance
-		The flag for whether saving all checkpoints
+	save_checkpoint_freq: a :class: `int` instance
+		The flag for saving checkpoints frequency, default 0
 	train: a :class: `bool` instance
 		The flag for training or testing
 
@@ -70,7 +70,7 @@ class Training(abc.ABC):
 
 	def __init__(self, net, dataloader, batch_size, loss_fun, measure_fun, 
 		optimizer=None, num_epochs=1, device='gpu', scheduler=None,
-		save_all_checkpoints=False, train=True,
+		save_checkpoint_freq=0, train=True,
 		forward_op=forwardOperator(), backward_op=backwardOperator(),
 		other_config=None
 	):
@@ -97,7 +97,7 @@ class Training(abc.ABC):
 		self._measure = measure_fun
 		self._device = device
 		self._scheduler = scheduler
-		self._save_all_ckpt = save_all_checkpoints
+		self._save_ckpt_freq = save_checkpoint_freq
 		self._other_config = other_config
 		self._train_flag = train
 		if self._train_flag is True and self._optimizer is None:
@@ -167,8 +167,9 @@ class BaseTraining(Training):
 			best_epoch = 0.
 			start = time.time()
 			for epoch in range(1, self._num_epochs+1):
-				if self._save_all_ckpt:
-					save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
+				if self._save_ckpt_freq:
+					if epoch%self._save_ckpt_freq==0:
+						save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 
 				self._train(epoch)
 				avg_loss, avg_measre = self._val(epoch)
