@@ -69,7 +69,7 @@ class Training(abc.ABC):
 
 	def __init__(self, net, dataloader, batch_size, loss_fun, measure_fun, 
 		optimizer=None, num_epochs=1, device='gpu', scheduler=None,
-		save_checkpoint_freq=0, train=True,
+		save_checkpoint_freq=0, train=True, validate=True,
 		other_config=None
 	):
 		self._net = net
@@ -98,8 +98,13 @@ class Training(abc.ABC):
 		self._save_ckpt_freq = save_checkpoint_freq
 		self._other_config = other_config
 		self._train_flag = train
+		self._validate_flag = validate
 		if self._train_flag is True and self._optimizer is None:
 			raise ValueError("Optimizer should be set for training.")
+		if self._train_flag is True and self._train_loader is None:
+			raise ValueError("Attending to train on training dataset but the data loader is none.")
+		if self._validate_flag is True and self._val_loader is None:
+			raise ValueError("Attending to validate on validating dataset but the data loader is none.")
 		self._logger = None
 		self._log_freq_train = 100
 		self._log_freq_val = 50
@@ -168,18 +173,19 @@ class BaseTraining(Training):
 						save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 
 				self._train(epoch)
-				avg_loss, avg_measre = self._val(epoch)
-
 				torch.save({'epoch': epoch,
 					'state_dict': self._net.state_dict()}, save_model_path)
-				if avg_measre is not None and avg_measre.avg >= best_measure:
-					torch.save({'epoch': epoch,
-						'state_dict': self._net.state_dict(),
-						'measure': avg_measre.avg,
-						'loss': avg_loss.avg}, best_model_path)
-					best_measure = avg_measre.avg
-					best_epoch = epoch
-				print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
+
+				if self._validate_flag:
+					avg_loss, avg_measre = self._val(epoch)
+					if avg_measre is not None and avg_measre.avg >= best_measure:
+						torch.save({'epoch': epoch,
+							'state_dict': self._net.state_dict(),
+							'measure': avg_measre.avg,
+							'loss': avg_loss.avg}, best_model_path)
+						best_measure = avg_measre.avg
+						best_epoch = epoch
+					print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
 			end = time.time()
 			print('Work done! Total elapsed time: %.2f s' % (end - start))
 			self._logger.close()
