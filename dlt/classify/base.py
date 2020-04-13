@@ -69,8 +69,8 @@ class Training(abc.ABC):
 
 	def __init__(self, net, dataloader, batch_size, loss_fun, measure_fun, 
 		optimizer=None, num_epochs=1, device='gpu', scheduler=None,
-		save_checkpoint_freq=0, train=True, validate=True,
-		other_config=None
+		save_checkpoint_freq=0, train=True, validate=True, 
+		**other_config
 	):
 		self._net = net
 		self._optimizer = optimizer

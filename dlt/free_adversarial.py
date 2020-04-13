@@ -24,40 +24,27 @@ class FreeAdversarialBaseTraining(BaseTraining):
 	results. (Refer to https://github.com/tqdm/tqdm/issues/706 answered by f0k)
 
 	The method _initialize should be overloaded to register the perturbation method
-	 through the item 'perturb' in `other_config`.
+	 through the argument 'perturb' in `other_config`.
 	"""
 	def _initialize(self):
-		try:
-			self._num_replay = self._other_config['replay']
-		except KeyError:
-			self._num_replay = 1
-			warnings.warn("Number of replays is defaultly set to 1")
+
+		self._num_replay = self._other_config.get('num_replay', 1)
+		warnings.warn("Number of replays is defaultly set to 1")
 		assert isinstance(self._num_replay, int)
 
 		self._num_epochs = int(self._num_epochs / self._num_replay)
 
-		try:
-			self._perturb = self._other_config['perturb']
-		except KeyError:
-			raise KeyError("Perturbation method is required in other_config")			
-		try:
-			self._min = self._other_config['min']
-		except KeyError:
-			self._min = 0.
-		try:
-			self._max = self._other_config['max']
-		except KeyError:
-			self._max = 1.		
+		self._perturb = self._other_config.get('perturb', None)
+		if self._perturb is None:
+			raise KeyError("Perturbation method is required in other_config")
+
+		self._min = self._other_config.get('min', 0.)
+		self._max = self._other_config.get('max', 1.)
 		assert type(self._min) in (int, float) and type(self._max) in (int, float)
 
-		try:
-			self._mean = self._other_config['mean']
-		except KeyError:
-			self._mean = [0]
-		try:
-			self._std = self._other_config['std']
-		except KeyError:
-			self._std = [1]	
+
+		self._mean = self._other_config.get('mean', [0])
+		self._std = self._other_config.get('std', [1])
 		assert type(self._mean) in (list, tuple) and type(self._std) in (list, tuple)
 		self._mean = torch.Tensor(self._mean)
 		self._std = torch.Tensor(self._std)

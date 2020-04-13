@@ -19,26 +19,20 @@ class AdversarialTraining(BaseTraining):
 	results. (Refer to https://github.com/tqdm/tqdm/issues/706 answered by f0k)
 
 	The method _initialize should be overloaded to register the perturbation method
-	 through the item 'perturb' in `other_config`.
+	 through the argument 'perturb' in `other_config`.
 	You can also register the penalty function through the item 'penalty'.
 	"""
 	def _initialize(self):
-		try:
-			self._perturb = self._other_config['perturb']
-		except KeyError:
+
+		self._perturb = self._other_config.get('perturb', None)
+		if self._perturb is None:
 			raise KeyError("Perturbation method is required in other_config")
 
-		try:
-			self._add_penalty = self._other_config['penalty']
-		except KeyError:
-			self._add_penalty = default_add_penalty
+		self._add_penalty = self._other_config.get('penalty', default_add_penalty)
 
 		#weight of Lipschitz penalty required if you add Lipschitz penalty
-		try:
-			self._lipschitz_c = self._other_config['lipschitz']
-		except KeyError:
-			self._lipschitz_c = 0
-			warnings.warn("If you add Lipschitz penalty, please set `lipschitz` term in `other_config`")
+		self._lipschitz_c = self._other_config.get('lipschitz', 0)
+		warnings.warn("If you add Lipschitz penalty, please set `lipschitz` argument to nonzero.")
 		self._perturbed_data = None
 		self._perturbed_logits = None
 

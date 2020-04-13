@@ -72,7 +72,7 @@ class Training(abc.ABC):
 		optimizer=None, num_epochs=1, device='gpu', scheduler=None,
 		save_checkpoint_freq=0, train=True, validate=True,
 		forward_op=forwardOperator(), backward_op=backwardOperator(),
-		other_config=None
+		**other_config
 	):
 		self._net = net
 		self._optimizer = optimizer
