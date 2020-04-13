@@ -174,11 +174,6 @@ class BaseTraining(Training):
 				self._train(epoch)
 				avg_loss, avg_measre = self._val(epoch)
 
-				# Update the learning rate
-				if self._scheduler is not None and not isinstance(self._scheduler, torch.optim.lr_scheduler.CyclicLR) \
-					and not isinstance(self._scheduler, torch.optim.lr_scheduler.OneCycleLR):
-					self._scheduler.step()
-
 				torch.save({'epoch': epoch,
 					'state_dict': self._net.state_dict()}, save_model_path)
 				if avg_measre is not None and avg_measre.avg >= best_measure:

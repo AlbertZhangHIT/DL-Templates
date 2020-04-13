@@ -143,9 +143,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 
 				self._optimizer.step()			
 
-				if isinstance(self._scheduler, torch.optim.lr_scheduler.CyclicLR) or \
-					isinstance(self._scheduler, torch.optim.lr_scheduler.OneCycleLR):
-					self._scheduler.step()
+				self._scheduler.step()
 
 				#Update the progress
 				data_stream.set_description((
