@@ -8,9 +8,6 @@ from tqdm import tqdm
 import warnings
 
 
-def default_add_penalty(loss, data):
-	return loss
-
 class AdversarialTraining(BaseTraining):
 	"""Adversarial Training frames if both data and label are ready.
 	The measure function only receives two arguments.
@@ -24,15 +21,9 @@ class AdversarialTraining(BaseTraining):
 	"""
 	def _initialize(self):
 
-		self._perturb = self._other_config.get('perturb', None)
 		if self._perturb is None:
-			raise KeyError("Perturbation method is required in other_config")
+			raise KeyError("Perturbation method is required.")
 
-		self._add_penalty = self._other_config.get('penalty', default_add_penalty)
-
-		#weight of Lipschitz penalty required if you add Lipschitz penalty
-		self._lipschitz_c = self._other_config.get('lipschitz', 0)
-		warnings.warn("If you add Lipschitz penalty, please set `lipschitz` argument to nonzero.")
 		self._perturbed_data = None
 		self._perturbed_logits = None
 
@@ -92,17 +83,9 @@ class AdversarialTraining(BaseTraining):
 					)
 			)
 			if (current_iter-1)%self._log_freq_train == 0:
-				print('Training Epoch: [{epoch}/{epochs}] | '
-					'Iteration: {iters} | '
-					'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-					'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-					.format(
-						epoch=epoch,
-						epochs=self._num_epochs,
-						iters=current_iter,
-						loss=avg_loss,
-						mvalue=avg_measre,), file=self._logger, flush=True
-				)
+				self._train_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
+					epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+					avg_measre.val, avg_measre.avg)
 
 	def _val(self, epoch):
 		# check validate data loader
@@ -149,16 +132,7 @@ class AdversarialTraining(BaseTraining):
 				)
 				if self._train_flag:
 					if (current_iter-1)%self._log_freq_val == 0:
-						print('Validating Epoch: [{epoch}/{epochs}] | '
-							'Iteration: {iters} | '
-							'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-							'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-							.format(
-								epoch=epoch,
-								epochs=self._num_epochs,
-								iters=current_iter,
-								loss=avg_loss,
-								mvalue=avg_measre,
-								), file=self._logger, flush=True
-						)		
+						self._val_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
+							epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+							avg_measre.val, avg_measre.avg)		
 		return avg_loss, avg_measre

@@ -63,17 +63,9 @@ class PlainTraining(BaseTraining):
 					)
 			)
 			if (current_iter-1)%self._log_freq_train == 0:
-				print('Training Epoch: [{epoch}/{epochs}] | '
-					'Iteration: {iters} | '
-					'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-					'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-					.format(
-						epoch=epoch,
-						epochs=self._num_epochs,
-						iters=current_iter,
-						loss=avg_loss,
-						mvalue=avg_measre,), file=self._logger, flush=True
-				)
+				self._train_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
+					epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+					avg_measre.val, avg_measre.avg)
 
 	def _val(self, epoch):
 		# check validate data loader
@@ -116,17 +108,8 @@ class PlainTraining(BaseTraining):
 				)
 				if self._train_flag:
 					if (current_iter-1)%self._log_freq_val == 0:
-						print('Validating Epoch: [{epoch}/{epochs}] | '
-							'Iteration: {iters} | '
-							'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-							'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-							.format(
-								epoch=epoch,
-								epochs=self._num_epochs,
-								iters=current_iter,
-								loss=avg_loss,
-								mvalue=avg_measre,
-								), file=self._logger, flush=True
-						)
+						self._val_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
+							epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+							avg_measre.val, avg_measre.avg)
 		
 		return avg_loss, avg_measre
