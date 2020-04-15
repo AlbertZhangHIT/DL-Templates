@@ -34,16 +34,28 @@ class FreeAdversarialBaseTraining(BaseTraining):
 		warnings.warn("Number of replays is defaultly set to 1")
 		assert isinstance(self._num_replay, int)
 
-		self._lower_limit = self._other_config.get('lower_limit', 0)
-		self._upper_limit = self._other_config.get('upper_limit', 1)
+		self._lower_limit = self._other_config.get('lower_limit', 0.)
+		self._upper_limit = self._other_config.get('upper_limit', 1.)
 		self._eps = self._other_config.get('eps', 0.1)
 		assert type(self._lower_limit) in (float, tuple, list)
 		assert type(self._upper_limit) in (float, tuple, list)
 		assert type(self._eps) in (float, tuple, list)
-		assert len(self._lower_limit)==len(self._upper_limit)==len(self._eps)
+		if type(self._lower_limit)==float:
+			self._lower_limit = [self._lower_limit]
+		if type(self._upper_limit)==float:
+			self._upper_limit = [self._upper_limit]
+		if type(self._eps)==float:
+			self._eps = [self._eps]
 		self._lower_limit = torch.Tensor(self._lower_limit).to(self._device)
 		self._upper_limit = torch.Tensor(self._upper_limit).to(self._device)
 		self._eps = torch.Tensor(self._eps).to(self._device)
+		assert len(self._lower_limit)==len(self._upper_limit)==len(self._eps)
+
+	def _sub_init_logger(self):
+		self._train_loader.info("%s advaced setting: eps=%s, num_replay=%s, lower_limit=%s, upper_limit=%s", 
+			self.__class__.__name__, str(self._eps), str(self._num_replay), str(self._lower_limit), str(self._upper_limit))
+		self._val_loader.info("%s advaced setting: eps=%s, num_replay=%s, lower_limit=%s, upper_limit=%s", 
+			self.__class__.__name__, str(self._eps), str(self._num_replay), str(self._lower_limit), str(self._upper_limit))
 
 
 	def _global_adversarial_noise(self, data):
@@ -76,7 +88,7 @@ class FreeAdversarialBaseTraining(BaseTraining):
 				torch.save({'epoch': epoch,
 					'state_dict': self._net.state_dict()}, save_model_path)
 
-				if self._val_flag:
+				if self._validate_flag:
 					avg_loss, avg_measre = self._val(epoch)
 					if avg_measre is not None and avg_measre.avg >= best_measure:
 						torch.save({'epoch': epoch,

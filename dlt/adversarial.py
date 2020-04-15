@@ -38,10 +38,10 @@ class AdversarialTraining(BaseTraining):
 
 	def _sub_init_logger(self):
 		self._train_loader.info("%s advaced setting: pertub_method=%s, penalty_weight=%.5f", 
-			self._perturb.__class__.__name__, self._lipschitz_c)
+			self.__class__.__name__, self._perturb.__class__.__name__, self._lipschitz_c)
 		self._val_loader.info("%s advaced setting: pertub_method=%s, penalty_weight=%.5f", 
-			self._perturb.__class__.__name__, self._lipschitz_c)
-		
+			self.__class__.__name__, self._perturb.__class__.__name__, self._lipschitz_c)
+
 	def _train(self, epoch):
 		avg_loss = AverageMeter()
 		avg_measre = AverageMeter()

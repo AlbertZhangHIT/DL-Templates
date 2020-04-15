@@ -7,6 +7,7 @@ import functools
 import abc
 from abc import abstractmethod
 from .operator import forwardOperator, backwardOperator
+from .logger import setup_logger
 
 class AverageMeter(object):
 	"""Computes and stores the average and current values
@@ -172,12 +173,12 @@ class BaseTraining(Training):
 			self.__class__.__name__,
 			self._train_batch_size, self._val_batch_size, 
 			self._num_epochs, self._optimizer.__class__.__name__, self._scheduler.__class__.__name__, 
-			self._optimizer.default['weight_decay'])
+			self._optimizer.defaults['weight_decay'])
 		self._val_logger.info("%s basic setting: train_batch_size=%d, val_batch_size=%d, \
 			epochs=%d, optimizer=%s, lr_scheduler=%s, weight_decay=%.6f", self.__class__.__name__, 
 			self._train_batch_size, self._val_batch_size, 
 			self._num_epochs, self._optimizer.__class__.__name__, self._scheduler.__class__.__name__, 
-			self._optimizer.default['weight_decay'])
+			self._optimizer.defaults['weight_decay'])
 
 		self._sub_init_logger()
 
