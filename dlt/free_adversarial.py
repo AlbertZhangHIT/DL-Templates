@@ -7,6 +7,8 @@ from .base import BaseTraining, AverageMeter
 from tqdm import tqdm
 import warnings
 
+def clamp(x, lower_limit, upper_limit):
+    return torch.max(torch.min(x, upper_limit), lower_limit)
 
 """ Free Adversarial Training
 Reference: Shafahi, A., Najibi, M., Ghiasi, A., Xu, Z., 
@@ -32,31 +34,31 @@ class FreeAdversarialBaseTraining(BaseTraining):
 		warnings.warn("Number of replays is defaultly set to 1")
 		assert isinstance(self._num_replay, int)
 
-		self._num_epochs = int(self._num_epochs / self._num_replay)
+		self._lower_limit = self._other_config.get('lower_limit', 0)
+		self._upper_limit = self._other_config.get('upper_limit', 1)
+		self._eps = self._other_config.get('eps', 0.1)
+		assert type(self._lower_limit) in (float, tuple, list)
+		assert type(self._upper_limit) in (float, tuple, list)
+		assert type(self._eps) in (float, tuple, list)
+		assert length(self._lower_limit)==length(self._upper_limit)==length(self._eps)
+		self._lower_limit = torch.Tensor(self._lower_limit).to(self._device)
+		self._upper_limit = torch.Tensor(self._upper_limit).to(self._device)
+		self._eps = torch.Tensor(self._eps).to(self._device)
 
-		self._perturb = self._other_config.get('perturb', None)
-		if self._perturb is None:
-			raise KeyError("Perturbation method is required in other_config")
-
-		self._min = self._other_config.get('min', 0.)
-		self._max = self._other_config.get('max', 1.)
-		assert type(self._min) in (int, float) and type(self._max) in (int, float)
-
-
-		self._mean = self._other_config.get('mean', [0])
-		self._std = self._other_config.get('std', [1])
-		assert type(self._mean) in (list, tuple) and type(self._std) in (list, tuple)
-		self._mean = torch.Tensor(self._mean)
-		self._std = torch.Tensor(self._std)
 
 	def _global_adversarial_noise(self, data):
 		self.adversarial_noise = torch.zeros((self._train_batch_size,)+data.size()).to(self._device)
+		self.adversarial_noise.requires_grad_(True)
+		if self._eps.ndim < data.ndim:
+			for _ in range(data.ndim - self._eps.ndim):
+				self._eps = self._eps.unsqueeze(-1)
+				self._lower_limit = self._lower_limit.unsqueeze(-1)
+				self._upper_limit = self._upper_limit.unsqueeze(-1)
 
 	def run(self, exp_dir):
+		if self._train_flag:
 		example = self._train_loader.dataset.__getitem__(1)[0]
 		self._global_adversarial_noise(example)
-		self._mean = self._mean.expand_as(example).to(self._device)
-		self._std = self._std.expand_as(example).to(self._device)
 
 		os.makedirs(exp_dir, exist_ok=True)
 		self._init_logger(exp_dir)
@@ -71,23 +73,21 @@ class FreeAdversarialBaseTraining(BaseTraining):
 					save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 
 			self._train(epoch)
-			avg_loss, avg_measre = self._val(epoch)
-
-			self._scheduler.step()
-
 			torch.save({'epoch': epoch,
 				'state_dict': self._net.state_dict()}, save_model_path)
-			if avg_measre is not None and avg_measre.avg >= best_measure:
-				torch.save({'epoch': epoch,
-					'state_dict': self._net.state_dict(),
-					'measure': avg_measre.avg,
-					'loss': avg_loss.avg}, best_model_path)
-				best_measure = avg_measre.avg
-				best_epoch = epoch
-			print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
+
+			if self._val_flag:
+				avg_loss, avg_measre = self._val(epoch)
+				if avg_measre is not None and avg_measre.avg >= best_measure:
+					torch.save({'epoch': epoch,
+						'state_dict': self._net.state_dict(),
+						'measure': avg_measre.avg,
+						'loss': avg_loss.avg}, best_model_path)
+					best_measure = avg_measre.avg
+					best_epoch = epoch
+				print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
 		end = time.time()
-		print('Work done! Total elapsed time: %.2f s' % (end - start))	
-		self._logger.close()	
+		self._train_logger.info('Total train time: %.4f minutes', (end - start)/60)	
 
 
 class FreeAdversarialTraining(FreeAdversarialBaseTraining):
@@ -97,71 +97,57 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 		data_stream = tqdm(enumerate(self._train_loader, 1))
 
 		for i, (data, label) in data_stream:
+			data, label = data.to(self._device), label.to(self._device)	
+			# where we are
+			num_batches = len(self._train_loader)
+			current_iter = (epoch - 1) * num_batches + i
 			# train on the same minibatch `_num_replay` times
 			for _ in range(self._num_replay):
-				self._net.train()
-				# where we are
-				num_batches = len(self._train_loader)
-				current_iter = (epoch - 1) * num_batches + i
-				data, label = data.to(self._device), label.to(self._device)			
-				noise = self.adversarial_noise.clone().requires_grad_(True)		
-
-				noisy = data + noise
-				noisy.clamp_(self._min, self._max)
-				noisy.sub_(self._mean).div_(self._std) # is the re-normalization crutial?
-
-				y = self._forward_op(noisy)
+				self._net.train()			
+				noisy = data + self.adversarial_noise[:data.size(0)]
+				if self._forward_op is not None:
+					y = self._forward_op(noisy)
+				else:
+					y = noisy
 				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
-
-				avg_loss.update(current_loss.item(), data.size(0))
-				current_measure = self._measure(logits, label)
-				avg_measre.update(current_measure, data.size(0))
-
 				self._optimizer.zero_grad()
-				current_loss.backward()		
-
+				current_loss.backward()	
 				# Update the noise for the next iteration
-				pert = self._perturb(noise.grad)
-				self.adversarial_noise += pert.data
-				self.adversarial_noise.clamp_(-self._perturb._eps, self._perturb._eps)
-
+				grad = self.adversarial_noise.grad.detach()
+				self.adversarial_noise.data = clamp(self.adversarial_noise + self._eps * torch.sign(grad), 
+													-self._eps, self._eps)
+				self.adversarial_noise.data[:data.size(0)] = clamp(self.adversarial_noise[:data.size(0)], 
+												self._lower_limit - data, self._upper_limit - data)
 				self._optimizer.step()			
+				self.adversarial_noise.grad.zero_()
+				self._scheduler.step()
+			avg_loss.update(current_loss.item(), data.size(0))
+			current_measure = self._measure(logits, label)
+			avg_measre.update(current_measure, data.size(0))
 
-				if isinstance(self._scheduler, torch.optim.lr_scheduler.CyclicLR) or \
-					isinstance(self._scheduler, torch.optim.lr_scheduler.OneCycleLR):
-					self._scheduler.step()
-
-				#Update the progress
-				data_stream.set_description((
-					'Training Epoch: [{epoch}/{epochs}] | '
-					'Iteration: {iters} | '
-					'progress: [{trained}/{total}] ({percent:.0f}%) | '
-					'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-					'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-					).format(
-						epoch=epoch,
-						epochs=self._num_epochs,
-						iters=current_iter,
-						trained=i,
-						total=num_batches,
-						percent=(100.*i/num_batches),
-						loss=avg_loss,
-						mvalue=avg_measre,
-						)
-				)
+			#Update the progress
+			data_stream.set_description((
+				'Training Epoch: [{epoch}/{epochs}] | '
+				'Iteration: {iters} | '
+				'progress: [{trained}/{total}] ({percent:.0f}%) | '
+				'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
+				'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
+				).format(
+					epoch=epoch,
+					epochs=self._num_epochs,
+					iters=current_iter,
+					trained=i,
+					total=num_batches,
+					percent=(100.*i/num_batches),
+					loss=avg_loss,
+					mvalue=avg_measre,
+					)
+			)
 			if (current_iter-1)%self._log_freq_train == 0:
-				print('Training Epoch: [{epoch}/{epochs}] | '
-					'Iteration: {iters} | '
-					'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-					'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-					.format(
-						epoch=epoch,
-						epochs=self._num_epochs,
-						iters=current_iter,
-						loss=avg_loss,
-						mvalue=avg_measre,), file=self._logger, flush=True
-				)
+				self._train_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
+					epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+					avg_measre.val, avg_measre.avg)
 
 	def _val(self, epoch):
 		# check validate data loader
@@ -177,10 +163,12 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				num_batches = len(self._val_loader)
 				current_iter = (epoch - 1) * num_batches + i
 
-				data, label = data.to(self._device), label.to(self._device)	
-				data.sub_(self._mean).div_(self._std)	
+				data, label = data.to(self._device), label.to(self._device)		
 
-				y = self._forward_op(data)
+				if self._forward_op is not None:
+					y = self._forward_op(data)
+				else:
+					y = data
 				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
@@ -206,16 +194,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				)
 				if self._train_flag:
 					if (current_iter-1)%self._log_freq_val == 0:
-						print('Validating Epoch: [{epoch}/{epochs}] | '
-							'Iteration: {iters} | '
-							'loss: {loss.val: .4f} (Avg {loss.avg:.4f}) | '
-							'measure: {mvalue.val: .2f} (Avg {mvalue.avg: .4f})'
-							.format(
-								epoch=epoch,
-								epochs=self._num_epochs,
-								iters=current_iter,
-								loss=avg_loss,
-								mvalue=avg_measre,
-								), file=self._logger, flush=True
-						)			
+						self._val_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
+							epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+							avg_measre.val, avg_measre.avg)		
 		return avg_loss, avg_measre

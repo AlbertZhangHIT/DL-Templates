@@ -71,7 +71,7 @@ class Training(abc.ABC):
 	def __init__(self, net, dataloader, batch_size, loss_fun, measure_fun, 
 		optimizer=None, num_epochs=1, device='gpu', scheduler=None,
 		save_checkpoint_freq=0, train=True, validate=True,
-		forward_op=forwardOperator(), backward_op=backwardOperator(),
+		forward_op=None, backward_op=None, log_freq_train=100, log_freq_val=50, 
 		**other_config
 	):
 		self._net = net
@@ -107,9 +107,10 @@ class Training(abc.ABC):
 			raise ValueError("Attending to train on training dataset but the data loader is none.")
 		if self._validate_flag is True and self._val_loader is None:
 			raise ValueError("Attending to validate on validating dataset but the data loader is none.")
-		self._logger = None
-		self._log_freq_train = 100
-		self._log_freq_val = 50
+		self._train_logger = None
+		self._val_logger = None
+		self._log_freq_train = log_freq_train
+		self._log_freq_val = log_freq_val
 		self._forward_op = forward_op
 		self._backward_op = backward_op
 		# to customize the initialization in subclasses, please
@@ -153,13 +154,42 @@ class BaseTraining(Training):
 		raise NotImplementedError
 
 	def _init_logger(self, exp_dir):
-		# first create logging file
-		f = open(os.path.join(exp_dir, 'log.txt'), 'w')
-		f.close()
+		"""Base training logger initialization, some base arguments are logged out.
+		For logging more advanced arguments it could be finished in _sub_init_logger
+		in subclasses.
+		"""
+		train_log_file = os.path.join(exp_dir, 'train.log')
+		val_log_file = os.path.join(exp_dir, 'val.log')
+		if os.path.exists(train_log_file):
+			os.remove(train_log_file)
+		if os.path.exists(val_log_file):
+			os.remove(val_log_file)
+		self._train_logger = setup_logger(name='train_logger', log_file=train_log_file)
+		self._val_logger = setup_logger(name='val_logger', log_file=val_log_file)
 
-		f = open(os.path.join(exp_dir, 'log.txt'), 'a')
-		self._logger = f
+		self._train_logger.info("%s basic setting: train_batch_size=%d, val_batch_size=%d, \
+			epochs=%d, optimizer=%s, lr_scheduler=%s, weight_decay=%.6f", 
+			self.__class__.__name__,
+			self._train_batch_size, self._val_batch_size, 
+			self._num_epochs, self._optimizer.__class__.__name__, self._scheduler.__class__.__name__, 
+			self._optimizer.default['weight_decay'])
+		self._val_logger.info("%s basic setting: train_batch_size=%d, val_batch_size=%d, \
+			epochs=%d, optimizer=%s, lr_scheduler=%s, weight_decay=%.6f", self.__class__.__name__, 
+			self._train_batch_size, self._val_batch_size, 
+			self._num_epochs, self._optimizer.__class__.__name__, self._scheduler.__class__.__name__, 
+			self._optimizer.default['weight_decay'])
 
+		self._sub_init_logger()
+
+		self._train_logger.info("Epoch \t Iterations \t LR \t Train Loss \t Train Loss(avg) \t \
+				Train measure \t Train measure(avg)")
+		self._val_logger.info("Epoch \t Iterations \t LR \t Val Loss \t Val Loss(avg) \t \
+				Val measure \t Val measure(avg)")
+
+	def _sub_init_logger(self):
+		"""More logging information in subclasses.
+		"""
+		pass
 
 	def run(self, exp_dir=None):
 		if self._train_flag:
@@ -191,8 +221,7 @@ class BaseTraining(Training):
 						best_epoch = epoch
 					print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
 			end = time.time()
-			print('Work done! Total elapsed time: %.2f s' % (end - start))
-			self._logger.close()
+			self._train_logger.info('Total train time: %.4f minutes', (end - start)/60)
 		else:
 			if exp_dir is not None:
 				os.makedirs(exp_dir, exist_ok=True)

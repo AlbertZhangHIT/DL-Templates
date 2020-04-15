@@ -5,7 +5,7 @@ class Operator(abc.ABC):
 	"""abstract base class for operators in inverse problem.
 	The operators should be able to deal with a batch of data.
 	Parameters:
-		config:  configuration fot the operator
+		config:  configuration for the operator
 	"""
 
 	def __init__(self, config=None):
@@ -42,12 +42,14 @@ class Operator(abc.ABC):
 
 class forwardOperator(Operator):
 	"""Forward operator in inverse problems
+		default to Identity operator
 	"""
 	def __call__(self, x):
 		return x
 
 class backwardOperator(Operator):
 	"""Adjoint/backward operator in inverse problems
+		default to Identity operator
 	""" 
 	def __call__(self, x):
 		return x
