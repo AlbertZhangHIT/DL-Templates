@@ -40,7 +40,7 @@ class FreeAdversarialBaseTraining(BaseTraining):
 		assert type(self._lower_limit) in (float, tuple, list)
 		assert type(self._upper_limit) in (float, tuple, list)
 		assert type(self._eps) in (float, tuple, list)
-		assert length(self._lower_limit)==length(self._upper_limit)==length(self._eps)
+		assert len(self._lower_limit)==len(self._upper_limit)==len(self._eps)
 		self._lower_limit = torch.Tensor(self._lower_limit).to(self._device)
 		self._upper_limit = torch.Tensor(self._upper_limit).to(self._device)
 		self._eps = torch.Tensor(self._eps).to(self._device)
