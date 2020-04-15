@@ -37,9 +37,9 @@ class AdversarialTraining(BaseTraining):
 		self._perturbed_logits = None
 
 	def _sub_init_logger(self):
-		self._train_loader.info("%s advaced setting: pertub_method=%s, penalty_weight=%.5f", 
+		self._train_logger.info("%s advaced setting: pertub_method=%s, penalty_weight=%.5f", 
 			self.__class__.__name__, self._perturb.__class__.__name__, self._lipschitz_c)
-		self._val_loader.info("%s advaced setting: pertub_method=%s, penalty_weight=%.5f", 
+		self._val_logger.info("%s advaced setting: pertub_method=%s, penalty_weight=%.5f", 
 			self.__class__.__name__, self._perturb.__class__.__name__, self._lipschitz_c)
 
 	def _train(self, epoch):

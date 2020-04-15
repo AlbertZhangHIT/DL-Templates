@@ -52,9 +52,9 @@ class FreeAdversarialBaseTraining(BaseTraining):
 		assert len(self._lower_limit)==len(self._upper_limit)==len(self._eps)
 
 	def _sub_init_logger(self):
-		self._train_loader.info("%s advaced setting: eps=%s, num_replay=%s, lower_limit=%s, upper_limit=%s", 
+		self._train_logger.info("%s advaced setting: eps=%s, num_replay=%s, lower_limit=%s, upper_limit=%s", 
 			self.__class__.__name__, str(self._eps), str(self._num_replay), str(self._lower_limit), str(self._upper_limit))
-		self._val_loader.info("%s advaced setting: eps=%s, num_replay=%s, lower_limit=%s, upper_limit=%s", 
+		self._val_logger.info("%s advaced setting: eps=%s, num_replay=%s, lower_limit=%s, upper_limit=%s", 
 			self.__class__.__name__, str(self._eps), str(self._num_replay), str(self._lower_limit), str(self._upper_limit))
 
 
