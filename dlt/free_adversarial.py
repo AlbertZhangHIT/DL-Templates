@@ -57,38 +57,45 @@ class FreeAdversarialBaseTraining(BaseTraining):
 
 	def run(self, exp_dir):
 		if self._train_flag:
-		example = self._train_loader.dataset.__getitem__(1)[0]
-		self._global_adversarial_noise(example)
+			example = self._train_loader.dataset.__getitem__(1)[0]
+			self._global_adversarial_noise(example)
 
-		os.makedirs(exp_dir, exist_ok=True)
-		self._init_logger(exp_dir)
-		save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
-		best_model_path = os.path.join(exp_dir, 'best.pth.tar')
-		best_measure = 0.
-		best_epoch = 0.
-		start = time.time()
-		for epoch in range(1, self._num_epochs+1):
-			if self._save_ckpt_freq:
-				if epoch%self._save_ckpt_freq==0:
-					save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
+			os.makedirs(exp_dir, exist_ok=True)
+			self._init_logger(exp_dir)
+			save_model_path = os.path.join(exp_dir, 'ckpt.pth.tar')
+			best_model_path = os.path.join(exp_dir, 'best.pth.tar')
+			best_measure = 0.
+			best_epoch = 0.
+			start = time.time()
+			for epoch in range(1, self._num_epochs+1):
+				if self._save_ckpt_freq:
+					if epoch%self._save_ckpt_freq==0:
+						save_model_path = os.path.join(exp_dir, "epoch_%d.pth.tar"%epoch)
 
-			self._train(epoch)
-			torch.save({'epoch': epoch,
-				'state_dict': self._net.state_dict()}, save_model_path)
+				self._train(epoch)
+				torch.save({'epoch': epoch,
+					'state_dict': self._net.state_dict()}, save_model_path)
 
-			if self._val_flag:
-				avg_loss, avg_measre = self._val(epoch)
-				if avg_measre is not None and avg_measre.avg >= best_measure:
-					torch.save({'epoch': epoch,
-						'state_dict': self._net.state_dict(),
-						'measure': avg_measre.avg,
-						'loss': avg_loss.avg}, best_model_path)
-					best_measure = avg_measre.avg
-					best_epoch = epoch
-				print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
-		end = time.time()
-		self._train_logger.info('Total train time: %.4f minutes', (end - start)/60)	
-
+				if self._val_flag:
+					avg_loss, avg_measre = self._val(epoch)
+					if avg_measre is not None and avg_measre.avg >= best_measure:
+						torch.save({'epoch': epoch,
+							'state_dict': self._net.state_dict(),
+							'measure': avg_measre.avg,
+							'loss': avg_loss.avg}, best_model_path)
+						best_measure = avg_measre.avg
+						best_epoch = epoch
+					print('Validating Best Measure: %.4f, epoch %d' % (best_measure, best_epoch))
+			end = time.time()
+			self._train_logger.info('Total train time: %.4f minutes', (end - start)/60)	
+		else:
+			if exp_dir is not None:
+				os.makedirs(exp_dir, exist_ok=True)
+			start = time.time()
+			avg_loss, avg_measre = self._val(epoch=1)
+			end = time.time()
+			print('Validating loss: %.4f, measure: %.4f' % (avg_loss.avg, avg_measre.avg))
+			print('Elapsed time: %.2f s' % (end - start))
 
 class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 	def _train(self, epoch):
