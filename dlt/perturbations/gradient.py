@@ -29,7 +29,7 @@ class GradientPerturb(abc.ABC):
 
     def __init__(self, net, criterion, eps=0., num_steps=1, 
         step_size=None, min_=0., max_=1., random_start=False, 
-        forward_op=forwardOperator(), backward_op=backwardOperator()):
+        forward_op=None, backward_op=None):
         """Initialize with a net, a maximum Euclidean perturbation 
         distance epsilon, and a criterion (eg the loss function)"""
         self._net = net
@@ -106,11 +106,17 @@ class L1Perturbation(SingleStepGradientPerturb):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            xx = self._forward_op(x)
+            if self._forward_op is not None:
+                xx = self._forward_op(x)
+            else:
+                xx = x
             logits = self._net(xx)
             loss = self._criterion(logits, y)
         dx = grad(loss, xx, torch.ones_like(loss))[0]
-        dx = self._backward_op(dx)
+        if self._backward_op is not None:
+            dx = self._backward_op(dx)
+        else:
+            pass
         gradient = dx.sign() * (self._max_ - self._min_)
 
         return self._step_size * gradient
@@ -127,11 +133,17 @@ class RFGSM(L1Perturbation):
         x_new = x + self._step_size * torch.zeros_like(x).normal_().sign()
         x_new = self._clip_perturbation(x_new, x)
         with torch.enable_grad():
-            xx = self._forward_op(x_new)
+            if self._forward_op is not None:
+                xx = self._forward_op(x_new)
+            else:
+                xx = x_new
             logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, xx, torch.ones_like(loss))[0]
-        dx = self._backward_op(dx)
+        dx = grad(loss, x, torch.ones_like(loss))[0]
+        if self._backward_op is not None:
+            dx = self._backward_op(dx)
+        else:
+            pass
         gradient = dx.sign() * (self._max_ - self._min_)
 
         return (self._eps - self._step_size) * gradient
@@ -150,11 +162,17 @@ class L2Perturbation(SingleStepGradientPerturb):
         
     def _gradient(self, x, y):
         with torch.enable_grad():
-            xx = self._forward_op(x)
+            if self._forward_op is not None:
+                xx = self._forward_op(x)
+            else:
+                xx = x
             logits = self._net(xx)
             loss = self._criterion(logits, y)
         dx = grad(loss, x, torch.ones_like(loss))[0]
-        dx = self._backward_op(dx)
+        if self._backward_op is not None:
+            dx = self._backward_op(dx)
+        else:
+            pass
 
         dxshape = dx.shape
         dx = dx.view(dxshape[0],-1)
@@ -173,11 +191,17 @@ class LInfPerturbation(SingleStepGradientPerturb):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            xx = self._forward_op(x)
+            if self._forward_op is not None:
+                xx = self._forward_op(x)
+            else:
+                xx = x
             logits = self._net(xx)
             loss = self._criterion(logits, y)
         dx = grad(loss, x, torch.ones_like(loss))[0]
-        dx = self._backward_op(dx)  
+        if self._backward_op is not None:
+            dx = self._backward_op(dx)  
+        else:
+            pass
 
         dxshape = dx.shape
         bsz = dxshape[0]

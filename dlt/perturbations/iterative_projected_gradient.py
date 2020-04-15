@@ -23,11 +23,17 @@ class LinfIterativePerturbation(IterativeBasePerturbation):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            xx = self._forward_op(x)
+            if self._forward_op is not None:
+                xx = self._forward_op(x)
+            else:
+                xx = x
             logits = self._net(xx)
             loss = self._criterion(logits, y)        
         dx = grad(loss, x, torch.ones_like(loss))[0] 
-        dx = self._backward_op(dx)
+        if self._backward_op is not None:
+            dx = self._backward_op(dx)
+        else:
+            pass
         gradient = dx.sign() * (self._max_ - self._min_)
 
         return self._step_size * gradient
@@ -48,11 +54,17 @@ class L2IterativePerturbation(IterativeBasePerturbation):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            xx = self._forward_op(x)
+            if self._forward_op is not None:
+                xx = self._forward_op(x)
+            else:
+                xx = x
             logits = self._net(xx)
             loss = self._criterion(logits, y)        
         dx = grad(loss, x, torch.ones_like(loss))[0] 
-        dx = self._backward_op(dx)
+        if self._backward_op is not None:
+            dx = self._backward_op(dx)
+        else:
+            pass
         norm = dx.pow(2).mean().sqrt()
         norm = max(1e-15, norm)
         gradient = dx / norm * (self._max_ - self._min_)
@@ -72,11 +84,17 @@ class L1IterativePerturbation(IterativeBasePerturbation):
 
     def _gradient(self, x, y):
         with torch.enable_grad():
-            xx = self._forward_op(x)
+            if self._forward_op is not None:
+                xx = self._forward_op(x)
+            else:
+                xx = x
             logits = self._net(xx)
             loss = self._criterion(logits, y)        
         dx = grad(loss, x, torch.ones_like(loss))[0] 
-        dx = self._backward_op(dx)
+        if self._backward_op is not None:
+            dx = self._backward_op(dx)
+        else:
+            pass
         norm = dx.abs().mean()
         norm = max(1e-15, norm)
         gradient = dx / norm * (self._max_ - self._min_)
