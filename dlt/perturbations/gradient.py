@@ -131,7 +131,6 @@ class RFGSM(L1Perturbation):
     """
     def _gradient(self, x, y):
         x_new = x + self._step_size * torch.zeros_like(x).normal_().sign()
-        x_new = self._clip_perturbation(x_new, x)
         with torch.enable_grad():
             if self._forward_op is not None:
                 xx = self._forward_op(x_new)
@@ -139,7 +138,7 @@ class RFGSM(L1Perturbation):
                 xx = x_new
             logits = self._net(xx)
             loss = self._criterion(logits, y)
-        dx = grad(loss, x, torch.ones_like(loss))[0]
+        dx = grad(loss, xx, torch.ones_like(loss))[0]
         if self._backward_op is not None:
             dx = self._backward_op(dx)
         else:

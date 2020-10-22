@@ -4,6 +4,9 @@ from math import sqrt, inf
 import torch
 import abc
 
+def clamp(x, lower_limit, upper_limit):
+    return torch.max(torch.min(x, upper_limit), lower_limit)
+
 class GradientPerturb(abc.ABC):
     """Base class for all adversarial training perturbations.
     Parameters
@@ -27,17 +30,19 @@ class GradientPerturb(abc.ABC):
     """
 
     def __init__(self, net, criterion, eps=0., num_steps=1, 
-        step_size=None, min_=0., max_=1., random_start=False):
+        step_size=None, lower_limit=0., upper_limit=1., random_start=False):
         """Initialize with a net, a maximum Euclidean perturbation 
         distance epsilon, and a criterion (eg the loss function)"""
         self._net = net
         self._criterion = criterion
-        self._eps = eps
+        self._eps = torch.Tensor([eps])
         self._num_steps = num_steps
         self._step_size = step_size
-        self._min_ = min_
-        self._max_ = max_
+        self._lower_limit = torch.Tensor([lower_limit])
+        self._upper_limit = torch.Tensor([upper_limit])
         self._random_start = random_start
+        self._num_calls = 0
+        self._eps_tensor = self._eps
 
         self._initialize()
 
@@ -64,12 +69,23 @@ class GradientPerturb(abc.ABC):
 
     def __call__(self, x, y):
         self._prep_net()
- 
+        self._num_calls += 1
+        noise = torch.zeros_like(x)
+        if self._num_calls == 1:
+            self._eps_tensor = self._eps_tensor.to(x.device)
+            self._lower_limit = self._lower_limit.to(x.device)
+            self._upper_limit = self._upper_limit.to(x.device)
+            if self._eps_tensor.ndim < x.ndim-1:
+                for _ in range(x.ndim-1-self._eps_tensor.ndim):
+                    self._eps_tensor = self._eps_tensor.unsqueeze(-1)
+                    self._lower_limit = self._lower_limit.unsqueeze(-1)
+                    self._upper_limit = self._upper_limit.unsqueeze(-1)
         if self._random_start:
-            noise = torch.zeros_like(x).uniform_(-self._eps, self._eps)
-            x_hat = x.clone() + noise
-        else:
-            x_hat = x.clone()
+            for i in range(len(self._eps)):
+                noise[:, i, ...].uniform_(-self._eps[i], self._eps[i])
+            noise.data = clamp(noise, self._lower_limit - x, self._upper_limit - x)
+        noise.requires_grad_(True)
+        x_hat = x.clone() + noise
         for _ in range(self._num_steps):
             x_hat.requires_grad_(True)
             gradient = self._gradient(x_hat, y)
@@ -95,17 +111,16 @@ class L1Perturbation(SingleStepGradientPerturb):
     Equivalent to the Fast Gradient Signed Method.
     """
     def _clip_perturbation(self, perturbed, original):
-        perturbed = torch.min(torch.max(perturbed, original-self._eps),
-                             original+self._eps)
-        perturbed = torch.clamp(perturbed, self._min_, self._max_)
+        perturbed = clamp(perturbed, original - self._eps_tensor, original + self._eps_tensor)
+        perturbed = clamp(perturbed, self._lower_limit, self._upper_limit)
         return perturbed 
 
     def _gradient(self, x, y):
         with torch.enable_grad():
             logits = self._net(x)
             loss = self._criterion(logits, y)
-        dx = grad(loss, xx)[0]
-        gradient = dx.sign() * (self._max_ - self._min_)
+        dx = grad(loss, x)[0]
+        gradient = dx.sign()
 
         return self._step_size * gradient
 
@@ -123,10 +138,10 @@ class RFGSM(L1Perturbation):
         with torch.enable_grad():
             logits = self._net(x_new)
             loss = self._criterion(logits, y)
-        dx = grad(loss, xx)[0]
-        gradient = dx.sign() * (self._max_ - self._min_)
+        dx = grad(loss, x_new)[0]
+        gradient = dx.sign()
 
-        return (self._eps - self._step_size) * gradient
+        return (self._eps_tensor - self._step_size) * gradient
 
 
 class L2Perturbation(SingleStepGradientPerturb):
@@ -136,7 +151,8 @@ class L2Perturbation(SingleStepGradientPerturb):
     def _clip_perturbation(self, perturbed, original):
         norm = perturbed.pow(2).mean().sqrt()
         norm = max(1e-15, norm)
-        factor = min(1, self._eps * (self._max_ - self._min_) / norm)
+        one = torch.ones_like(self._eps_tensor)
+        factor = torch.min(one, self._eps_tensor * (self._lower_limit - self._upper_limit) / norm)
 
         return perturbed * factor
         
@@ -151,7 +167,7 @@ class L2Perturbation(SingleStepGradientPerturb):
         dxn = dx.norm(dim=1, keepdim=True)
         b = (dxn>0).squeeze()
         dx[b] = dx[b]/dxn[b]
-        gradient = dx.view(*dxshape) * (self._max_ - self._min_)
+        gradient = dx.view(*dxshape)
 
         return self._step_size * gradient
 
@@ -160,6 +176,10 @@ class LInfPerturbation(SingleStepGradientPerturb):
     """
     Penalize a loss function by the L-infinity norm of the loss's gradient.
     """
+    def _clip_perturbation(self, perturbed, original):
+        perturbed = clamp(perturbed, original - self._eps_tensor, original + self._eps_tensor)
+        perturbed = clamp(perturbed, self._lower_limit, self._upper_limit)
+        return perturbed 
 
     def _gradient(self, x, y):
         with torch.enable_grad():
@@ -174,6 +194,6 @@ class LInfPerturbation(SingleStepGradientPerturb):
         dx_ = torch.zeros_like(dx.view(bsz,-1))
         jx = torch.arange(bsz, device=dx.device)
         dx_[jx,ix] = dx.sign()[jx,ix]
-        gradient = dx_.view(*dxshape) * (self._max_ - self._min_)
+        gradient = dx_.view(*dxshape)
 
         return self._step_size * gradient

@@ -191,12 +191,12 @@ class BaseTraining(Training):
 			self.__class__.__name__,
 			self._train_batch_size, self._val_batch_size, 
 			self._num_epochs, self._optimizer.__class__.__name__, self._scheduler.__class__.__name__, 
-			self._optimizer.default['weight_decay'], self._lipschitz_c, self._num_replay)
+			self._optimizer.defaults['weight_decay'], self._lipschitz_c, self._num_replay)
 		self._val_logger.info("%s Arguments setting: train_batch_size=%d, val_batch_size=%d, \
 			epochs=%d, optimizer=%s, lr_scheduler=%s, weight_decay=%.6f", self.__class__.__name__, 
 			self._train_batch_size, self._val_batch_size, 
 			self._num_epochs, self._optimizer.__class__.__name__, self._scheduler.__class__.__name__, 
-			self._optimizer.default['weight_decay'])
+			self._optimizer.defaults['weight_decay'])
 		self._train_logger.info("Epoch \t Iterations \t LR \t Train Loss \t Train Loss(avg) \t \
 				Train measure \t Train measure(avg)")
 		self._val_logger.info("Epoch \t Iterations \t LR \t Val Loss \t Val Loss(avg) \t \
