@@ -106,7 +106,11 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 
 				self._optimizer.step()			
 
-				self._scheduler.step()
+				if self._scheduler is not None:
+					self._scheduler.step()
+					lr = self._scheduler.get_lr()[0]
+				else:
+					lr = self._optimizer.defaults['lr']
 
 				#Update the progress
 				data_stream.set_description((
@@ -128,7 +132,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				)
 			if (current_iter-1)%self._log_freq_train == 0:
 				self._train_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
-					epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+					epoch, current_iter, lr, avg_loss.val, avg_loss.avg, 
 					avg_measre.val, avg_measre.avg)
 
 	def _val(self, epoch):
@@ -172,6 +176,10 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 						)
 				)
 				if self._train_flag:
+					if self._scheduler is not None:
+						lr = self._scheduler.get_lr()[0]
+					else:
+						lr = self._optimizer.defaults['lr']					
 					if (current_iter-1)%self._log_freq_val == 0:
 						self._val_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
 							epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 

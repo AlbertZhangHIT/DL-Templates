@@ -58,7 +58,11 @@ class AdversarialTraining(BaseTraining):
 
 			self._optimizer.step()
 
-			self._scheduler.step()
+			if self._scheduler is not None:
+				self._scheduler.step()
+				lr = self._scheduler.get_lr()[0]
+			else:
+				lr = self._optimizer.defaults['lr']
 
 			avg_loss.update(current_loss.item(), data.size(0))
 			current_measure = self._measure(logits, label)
@@ -84,7 +88,7 @@ class AdversarialTraining(BaseTraining):
 			)
 			if (current_iter-1)%self._log_freq_train == 0:
 				self._train_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
-					epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
+					epoch, current_iter, lr, avg_loss.val, avg_loss.avg, 
 					avg_measre.val, avg_measre.avg)
 
 	def _val(self, epoch):
@@ -131,6 +135,10 @@ class AdversarialTraining(BaseTraining):
 						)
 				)
 				if self._train_flag:
+					if self._scheduler is not None:
+						lr = self._scheduler.get_lr()[0]
+					else:
+						lr = self._optimizer.defaults['lr']					
 					if (current_iter-1)%self._log_freq_val == 0:
 						self._val_logger.info('%d \t %d \t %.5f \t %.4f \t %.4f \t %.4f \t %.4f', 
 							epoch, current_iter, self._scheduler.get_lr()[0], avg_loss.val, avg_loss.avg, 
