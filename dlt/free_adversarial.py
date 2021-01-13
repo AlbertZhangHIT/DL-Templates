@@ -106,7 +106,7 @@ class FreeAdversarialBaseTraining(BaseTraining):
 			start = time.time()
 			avg_loss, avg_measre = self._val(epoch=1)
 			end = time.time()
-			print('Validating loss: %.4f, measure: %.4f' % (avg_loss.avg, avg_measre.avg))
+			print('Testing loss: %.4f, measure: %.4f' % (avg_loss.avg, avg_measre.avg))
 			print('Elapsed time: %.2f s' % (end - start))
 
 class FreeAdversarialTraining(FreeAdversarialBaseTraining):

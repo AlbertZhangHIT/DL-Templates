@@ -60,6 +60,16 @@ class Training(abc.ABC):
 		The flag for saving checkpoints frequency, default 0
 	train: a :class: `bool` instance
 		The flag for training or testing
+	validate: a :class: `bool` instance
+		The flag for validating during training
+	forward_op: a :class: `Operator` instance
+		forward operator for inverse problems
+	backward_op: a :class: `Operator` instance
+		backward operator for inverse problems
+	log_freq_train: a :class: `int` instance
+		frequency for logging training information
+	log_freq_val: a :class: `int` instance
+		frequency for logging validating information
 
 	other_config: a :class: `dict`
 		Other configurations for customization.
@@ -229,5 +239,5 @@ class BaseTraining(Training):
 			start = time.time()
 			avg_loss, avg_measre = self._val(epoch=1)
 			end = time.time()
-			print('Validating loss: %.4f, measure: %.4f' % (avg_loss.avg, avg_measre.avg))
+			print('Testing loss: %.4f, measure: %.4f' % (avg_loss.avg, avg_measre.avg))
 			print('Elapsed time: %.2f s' % (end - start))
