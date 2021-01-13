@@ -21,7 +21,7 @@ tests_require = ["pytest", "pytest-cov"]
 setup(
     name="dlt",
     version=version,
-    description="Python toolbox to create training templates to train \
+    description="PyTorch deep learning wrapper templates to train \
         neural networks",
     long_description=README,
     long_description_content_type="text/x-rst",
