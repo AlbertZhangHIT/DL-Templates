@@ -52,6 +52,10 @@ class PlainTraining(BaseTraining):
 			current_measure = self._measure(logits, label)
 			avg_measre.update(current_measure, data.size(0))
 
+			del current_loss
+			del current_measure
+			del logits
+
 			#Update the progress
 			data_stream.set_description((
 				'Training Epoch: [{epoch}/{epochs}] | '
