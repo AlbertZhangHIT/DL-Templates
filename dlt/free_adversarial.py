@@ -148,7 +148,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 					lr = self._optimizer.defaults['lr']
 
 			avg_loss.update(current_loss.item(), data.size(0))
-			current_measure = self._measure(logits, label)
+			current_measure = self._measure(logits.detach(), label.detach())
 			avg_measre.update(current_measure, data.size(0))
 
 			#Update the progress
@@ -197,7 +197,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
 				avg_loss.update(current_loss.item(), data.size(0))
-				current_measure = self._measure(logits, label)
+				current_measure = self._measure(logits.detach(), label.detach())
 				avg_measre.update(current_measure, data.size(0))
 				#Update the progress
 				data_stream.set_description((
