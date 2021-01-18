@@ -234,8 +234,6 @@ class BaseTraining(Training):
 			end = time.time()
 			self._train_logger.info('Total train time: %.4f minutes', (end - start)/60)
 		else:
-			if exp_dir is not None:
-				os.makedirs(exp_dir, exist_ok=True)
 			start = time.time()
 			avg_loss, avg_measre = self._val(epoch=1)
 			end = time.time()
