@@ -63,6 +63,7 @@ class AdversarialTraining(BaseTraining):
 				data.requires_grad_(False)
 
 			self._optimizer.zero_grad()
+			self._net.zero_grad()			
 			if self._forward_op is not None:
 				y = self._forward_op(data)
 			else:

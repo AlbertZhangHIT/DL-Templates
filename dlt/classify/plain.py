@@ -30,6 +30,8 @@ class PlainTraining(BaseTraining):
 
 			data, label = data.to(self._device), label.to(self._device)
 			self._optimizer.zero_grad()
+			self._net.zero_grad()
+
 			logits = self._net(data)
 			current_loss = self._loss_fun(logits, label)
 			current_loss.backward()

@@ -48,6 +48,7 @@ class AdversarialTraining(BaseTraining):
 				data.requires_grad_(False)
 
 			self._optimizer.zero_grad()
+			self._net.zero_grad()			
 			logits = self._net(data)
 			current_loss = self._loss_fun(logits, label)
 			current_loss = self._add_penalty(current_loss, data)

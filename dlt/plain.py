@@ -30,6 +30,7 @@ class PlainTraining(BaseTraining):
 
 			data, label = data.to(self._device), label.to(self._device)
 			self._optimizer.zero_grad()
+			self._net.zero_grad()
 			if self._forward_op is not None:
 				y = self._forward_op(data)
 			else:

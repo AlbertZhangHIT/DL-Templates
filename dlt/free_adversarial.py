@@ -131,6 +131,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				logits = self._net(y)
 				current_loss = self._loss_fun(logits, label)
 				self._optimizer.zero_grad()
+				self._net.zero_grad()				
 				current_loss.backward()	
 				# Update the noise for the next iteration
 				grad = self.adversarial_noise.grad.detach()

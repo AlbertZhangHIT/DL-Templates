@@ -97,6 +97,7 @@ class FreeAdversarialTraining(FreeAdversarialBaseTraining):
 				avg_measre.update(current_measure, data.size(0))
 
 				self._optimizer.zero_grad()
+				self._net.zero_grad()
 				current_loss.backward()		
 
 				# Update the noise for the next iteration
